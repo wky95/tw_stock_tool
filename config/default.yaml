@@ -1,0 +1,22 @@
+environment: development
+timezone: Asia/Taipei
+base_currency: TWD
+
+research:
+  random_seed: 42
+  data_root: data
+  artifact_root: artifacts
+
+trading:
+  mode: backtest
+  live_enabled: false
+  allow_short: false
+  initial_cash: "1000000"
+  maximum_gross_exposure: "1.0"
+  maximum_net_exposure: "1.0"
+  maximum_position_weight: "0.10"
+
+logging:
+  level: INFO
+  json: true
+

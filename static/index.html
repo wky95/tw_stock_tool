@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="台股日 K 回測、盤中盯盤與因子研究工具">
+  <title>島嶼量化｜台股研究工具</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark">島</span><span>島嶼量化</span></div>
+    <nav class="main-nav" aria-label="主要功能">
+      <button class="nav-button active" data-view="backtest-view">策略回測</button>
+      <button class="nav-button" data-view="monitor-view">盤中盯盤 <i></i></button>
+      <button class="nav-button" data-view="factor-view">因子實驗室</button>
+    </nav>
+    <span class="badge">TOOLKIT · TW</span>
+  </header>
+
+  <main class="layout app-view" id="backtest-view">
+    <aside class="panel controls">
+      <div class="eyebrow">BACKTEST LAB</div>
+      <h1>把交易想法，<br><em>放回市場驗證。</em></h1>
+      <p class="intro">日 K、整股、只做多。訊號在收盤確認，隔日開盤執行。</p>
+
+      <form id="backtest-form">
+        <section class="form-section">
+          <div class="section-title"><span>01</span> 市場資料</div>
+          <div class="segmented">
+            <label><input type="radio" name="source" value="twse" checked><span>官方 API</span></label>
+            <label><input type="radio" name="source" value="csv"><span>CSV 匯入</span></label>
+          </div>
+          <div id="twse-fields">
+            <div class="field-row">
+              <label class="field">股票代號<input id="symbol" value="2330" inputmode="numeric" maxlength="6" required></label>
+              <label class="field">市場<select id="market"><option value="tse">上市 TSE</option><option value="otc">上櫃 OTC</option></select></label>
+            </div>
+            <div class="field-row">
+              <label class="field">開始日期<input id="start" type="date" required></label>
+              <label class="field">結束日期<input id="end" type="date" required></label>
+            </div>
+            <p class="hint">歷史行情由證交所與櫃買中心官方 API 取得。</p>
+          </div>
+          <div id="csv-fields" hidden>
+            <label class="dropzone" for="csv-file">
+              <input id="csv-file" type="file" accept=".csv,text/csv">
+              <span class="drop-icon">↥</span>
+              <strong id="file-label">選擇日 K CSV</strong>
+              <small>date, open, high, low, close, volume</small>
+            </label>
+          </div>
+        </section>
+
+        <section class="form-section">
+          <div class="section-title"><span>02</span> 交易策略</div>
+          <label class="field">策略
+            <select id="strategy">
+              <option value="sma_cross">雙均線趨勢</option>
+              <option value="breakout">區間突破</option>
+              <option value="rsi">RSI 反轉</option>
+            </select>
+          </label>
+          <div id="strategy-params" class="field-row"></div>
+        </section>
+
+        <section class="form-section">
+          <div class="section-title"><span>03</span> 資金與成本</div>
+          <label class="field">初始資金（元）<input id="initial-cash" type="number" min="1000" step="1000" value="3000000"></label>
+          <div class="field-row three">
+            <label class="field">手續費折數<input id="discount" type="number" min="0" step="0.01" value="0.28"></label>
+            <label class="field">證交稅 %<input id="tax" type="number" min="0" step="0.01" value="0.3"></label>
+            <label class="field">滑價 bps<input id="slippage" type="number" min="0" step="1" value="0"></label>
+          </div>
+        </section>
+
+        <button class="run-button" id="run-button" type="submit"><span>開始回測</span><b>→</b></button>
+        <div id="error" class="error" role="alert" hidden></div>
+      </form>
+    </aside>
+
+    <section class="workspace">
+      <div id="empty-state" class="empty-state">
+        <div class="orbit"><span></span><i>↗</i></div>
+        <h2>等待第一組回測</h2>
+        <p>設定左側條件，看看策略穿越多空循環後留下什麼。</p>
+      </div>
+
+      <div id="results" hidden>
+        <div class="result-head">
+          <div><div class="eyebrow" id="result-meta">RESULT</div><h2 id="result-title">回測結果</h2></div>
+          <button id="export-button" class="ghost-button">匯出交易 CSV ↓</button>
+        </div>
+        <div id="metrics" class="metrics"></div>
+
+        <article class="chart-card">
+          <div class="card-head"><div><span class="card-kicker">PERFORMANCE</span><h3>資產曲線</h3></div><div class="legend"><span class="strategy-dot"></span>策略 <span class="benchmark-dot"></span>買入持有</div></div>
+          <canvas id="equity-chart" height="280"></canvas>
+        </article>
+
+        <article class="chart-card">
+          <div class="card-head"><div><span class="card-kicker">PRICE & SIGNALS</span><h3>日 K 與交易點</h3></div><div class="legend"><span class="buy-mark">▲</span>買進 <span class="sell-mark">▼</span>賣出</div></div>
+          <canvas id="price-chart" height="330"></canvas>
+        </article>
+
+        <article class="table-card">
+          <div class="card-head"><div><span class="card-kicker">TRADE LOG</span><h3>交易紀錄</h3></div><span id="trade-count" class="count-pill"></span></div>
+          <div class="table-wrap"><table><thead><tr><th>進場</th><th>出場</th><th>股數</th><th>進場價</th><th>出場價</th><th>損益</th><th>報酬</th><th>成本</th><th>原因</th></tr></thead><tbody id="trade-body"></tbody></table></div>
+        </article>
+        <p class="disclaimer">回測結果不代表未來績效。本工具未計股利、除權息還原、流動性限制與成交量衝擊。</p>
+      </div>
+    </section>
+  </main>
+
+  <main class="monitor-view app-view" id="monitor-view" hidden>
+    <section class="monitor-hero">
+      <div>
+        <div class="eyebrow">MARKET PULSE</div>
+        <h1>盤中盯盤台</h1>
+        <p>以五秒行情快照追蹤上市櫃標的，價格條件觸發時在本機提醒。</p>
+      </div>
+      <div class="market-state"><span id="market-light"></span><div><small>MARKET</small><strong id="market-state">等待更新</strong></div></div>
+    </section>
+
+    <section class="monitor-toolbar">
+      <label class="field grow">觀察清單
+        <input id="watchlist" value="2330:tse, 2317:tse, 6488:otc" placeholder="2330:tse, 6488:otc">
+      </label>
+      <label class="field interval-field">更新頻率
+        <select id="refresh-interval"><option value="5">5 秒</option><option value="10">10 秒</option><option value="30">30 秒</option><option value="0">手動</option></select>
+      </label>
+      <button id="refresh-quotes" class="run-button compact"><span>立即更新</span><b>↻</b></button>
+    </section>
+    <div id="monitor-error" class="error monitor-error" hidden></div>
+    <div class="monitor-meta"><span id="quote-source">行情尚未載入</span><span id="updated-at">—</span></div>
+
+    <section id="quote-grid" class="quote-grid">
+      <div class="quote-placeholder">按下「立即更新」開始取得行情</div>
+    </section>
+
+    <section class="monitor-bottom">
+      <article class="table-card alert-card">
+        <div class="card-head">
+          <div><span class="card-kicker">LOCAL ALERTS</span><h3>價格警示</h3></div>
+          <button id="add-alert" class="ghost-button">＋ 新增條件</button>
+        </div>
+        <div id="alert-rules" class="alert-rules"></div>
+        <p class="hint">設定儲存在此瀏覽器。頁面需保持開啟才會觸發通知，不會自動下單。</p>
+      </article>
+      <article class="table-card integration-card">
+        <div class="card-head"><div><span class="card-kicker">INTEGRATIONS</span><h3>API 串接狀態</h3></div><span class="count-pill">v1</span></div>
+        <dl id="capabilities"><div><dt>歷史資料</dt><dd>載入中</dd></div><div><dt>盤中行情</dt><dd>載入中</dd></div><div><dt>券商下單</dt><dd>載入中</dd></div></dl>
+        <a class="docs-link" href="/docs/api.html" target="_blank">查看 API 與 Adapter 文件 →</a>
+      </article>
+    </section>
+    <p class="disclaimer monitor-disclaimer">MIS 快照僅供本機研究與盯盤；正式服務請串接有授權的行情來源。行情可能延遲，請勿作為唯一交易依據。</p>
+  </main>
+
+  <main class="factor-view app-view" id="factor-view" hidden>
+    <section class="monitor-hero factor-hero">
+      <div>
+        <div class="eyebrow">FACTOR LAB</div>
+        <h1>因子挖掘與合成</h1>
+        <p>以橫斷面 Rank IC 尋找日 K 因子，分離訓練與樣本外區間，再合成可排序的綜合分數。</p>
+      </div>
+      <div class="lab-badge"><strong id="factor-count">—</strong><small>BUILT-IN FACTORS</small></div>
+    </section>
+
+    <section class="factor-config chart-card">
+      <div class="card-head"><div><span class="card-kicker">UNIVERSE & VALIDATION</span><h3>研究設定</h3></div></div>
+      <div class="factor-form-grid">
+        <label class="field factor-universe">股票池（逗號分隔）
+          <input id="factor-universe" value="2330:tse, 2317:tse, 2454:tse, 2881:tse, 1301:tse" placeholder="2330:tse, 6488:otc">
+        </label>
+        <label class="field">開始日期<input id="factor-start" type="date"></label>
+        <label class="field">結束日期<input id="factor-end" type="date"></label>
+        <label class="field">預測週期<select id="factor-horizon"><option value="1">1 日</option><option value="5" selected>5 日</option><option value="10">10 日</option><option value="20">20 日</option></select></label>
+        <label class="field">訓練比例<select id="factor-train-ratio"><option value="0.6">60%</option><option value="0.7" selected>70%</option><option value="0.8">80%</option></select></label>
+        <label class="field">保留因子<select id="factor-top-k"><option value="4">4 個</option><option value="6" selected>6 個</option><option value="8">8 個</option><option value="10">10 個</option></select></label>
+        <button id="discover-factors" class="run-button factor-run"><span>開始挖掘</span><b>↗</b></button>
+      </div>
+      <p class="hint">至少 3 檔，建議 5 檔以上。研究 API 回應會快取；樣本外數據不參與因子挑選與權重估計。</p>
+    </section>
+    <div id="factor-error" class="error monitor-error" hidden></div>
+    <div id="factor-loading" class="factor-loading" hidden><span></span><div><strong>正在建立股票池與計算因子</strong><small>正在取得研究資料並進行橫斷面驗證</small></div></div>
+
+    <section id="factor-results" hidden>
+      <div id="factor-summary" class="metrics factor-metrics"></div>
+      <article class="table-card">
+        <div class="card-head"><div><span class="card-kicker">DISCOVERY</span><h3>候選因子排名</h3></div><span class="count-pill" id="selected-factor-count">0 個已選</span></div>
+        <div class="table-wrap"><table class="factor-table"><thead><tr><th>合成</th><th>因子</th><th>類別</th><th>訓練 IC</th><th>樣本外 IC</th><th>訓練 ICIR</th><th>FDR q</th><th>樣本外多空差</th><th>狀態</th></tr></thead><tbody id="factor-body"></tbody></table></div>
+      </article>
+
+      <article class="chart-card synthesis-panel">
+        <div class="card-head"><div><span class="card-kicker">SYNTHESIS</span><h3>因子合成機</h3></div></div>
+        <div class="synthesis-controls">
+          <label class="field">權重方法<select id="synthesis-method"><option value="ic_weighted">訓練 IC 加權</option><option value="icir_weighted">訓練 ICIR 加權</option><option value="equal">方向調整後等權</option></select></label>
+          <button id="synthesize-factors" class="run-button compact"><span>合成並驗證</span><b>→</b></button>
+          <p>負 IC 因子會自動反向；權重只由訓練區間估計。</p>
+        </div>
+      </article>
+
+      <section id="synthesis-results" hidden>
+        <div id="synthesis-metrics" class="metrics factor-metrics"></div>
+        <div class="monitor-bottom factor-output-grid">
+          <article class="table-card">
+            <div class="card-head"><div><span class="card-kicker">WEIGHTS</span><h3>合成權重</h3></div></div>
+            <div id="factor-weights" class="weight-list"></div>
+          </article>
+          <article class="table-card">
+            <div class="card-head"><div><span class="card-kicker">LATEST RANK</span><h3 id="ranking-title">最新排名</h3></div></div>
+            <div class="table-wrap"><table><thead><tr><th>排名</th><th>股票</th><th>綜合分數</th></tr></thead><tbody id="factor-ranking"></tbody></table></div>
+          </article>
+        </div>
+        <article class="chart-card"><div class="card-head"><div><span class="card-kicker">OUT-OF-SAMPLE CHECK</span><h3>綜合因子每日 IC</h3></div><div class="legend"><span class="benchmark-dot"></span>切分日 <span class="strategy-dot"></span>Rank IC</div></div><canvas id="factor-ic-chart" height="250"></canvas></article>
+      </section>
+    </section>
+    <p class="disclaimer monitor-disclaimer">研究結果未處理除權息還原、存活者偏誤與交易容量。樣本外仍可能過度擬合，不構成投資建議。</p>
+  </main>
+  <script src="/app.js"></script>
+</body>
+</html>

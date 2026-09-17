@@ -1,0 +1,37 @@
+<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>TW Stock Toolkit API</title><link rel="stylesheet" href="/style.css"><style>
+body{max-width:900px;margin:auto;padding:45px 24px 80px}h1,h2{font-family:Georgia,"Noto Serif TC",serif;font-weight:500}h1{font-size:36px}h2{margin-top:38px;border-bottom:1px solid var(--line);padding-bottom:10px}p,li{color:var(--muted);line-height:1.75;font-size:14px}code,pre{font-family:ui-monospace,SFMono-Regular,monospace}code{background:#e7e8e1;padding:2px 5px;border-radius:3px;color:var(--green)}pre{overflow:auto;background:var(--ink);color:#e8eee9;padding:18px;border-radius:8px;font-size:12px;line-height:1.55}.method{color:var(--green);font:bold 12px monospace;margin-right:8px}.back{color:var(--green);text-decoration:none;font-size:12px;font-weight:700}
+</style></head><body><a class="back" href="/">← 回到工具</a><div class="eyebrow" style="margin-top:35px">API VERSION 1</div><h1>串接文件</h1><p>本機 JSON API。成功回應格式為 <code>{"ok":true,"result":...}</code>，失敗則包含穩定的 <code>error.code</code> 與可讀的 <code>error.message</code>。</p>
+<h2><span class="method">GET</span>/api/v1/capabilities</h2><p>列出目前啟用的歷史與盤中資料 provider、券商狀態及策略。</p>
+<h2><span class="method">POST</span>/api/v1/backtests</h2><pre>{
+  "source": "api",
+  "market": "tse",
+  "symbol": "2330",
+  "start": "2023-01-01",
+  "end": "2025-12-31",
+  "strategy": "sma_cross",
+  "params": {"fast": 20, "slow": 60},
+  "config": {"initial_cash": 3000000}
+}</pre><p><code>market</code> 可為上市 <code>tse</code> 或上櫃 <code>otc</code>。CSV 模式傳入 <code>source: "csv"</code> 與 <code>csv_text</code>。</p>
+<h2><span class="method">POST</span>/api/v1/monitor/snapshot</h2><pre>{
+  "instruments": ["2330:tse", "6488:otc"],
+  "alerts": [{
+    "id": "my-rule",
+    "instrument": "2330:tse",
+    "condition": "above",
+    "threshold": 2000,
+    "enabled": true
+  }]
+}</pre><p>條件支援 <code>above</code>、<code>below</code>、<code>change_pct_above</code>、<code>change_pct_below</code>。單次最多 50 檔。</p>
+<h2><span class="method">POST</span>/api/v1/factors/discover</h2><pre>{
+  "instruments": ["2330:tse", "2317:tse", "6488:otc"],
+  "start": "2024-01-01", "end": "2025-12-31",
+  "horizon": 5, "train_ratio": 0.7, "top_k": 6
+}</pre><p>計算所有已註冊因子的訓練與樣本外 Rank IC，並排除高度相關因子。</p>
+<h2><span class="method">POST</span>/api/v1/factors/synthesize</h2><pre>{
+  "instruments": ["2330:tse", "2317:tse", "6488:otc"],
+  "start": "2024-01-01", "end": "2025-12-31",
+  "horizon": 5, "train_ratio": 0.7,
+  "factor_keys": ["momentum_20", "volume_ratio_5"],
+  "method": "ic_weighted"
+}</pre><p>方法可為 <code>equal</code>、<code>ic_weighted</code> 或 <code>icir_weighted</code>。</p>
+<h2><span class="method">GET</span>/api/v1/openapi.json</h2><p>機器可讀的 OpenAPI 入口。完整 adapter 擴充說明位於 repository 的 <code>docs/ARCHITECTURE.md</code>。</p></body></html>

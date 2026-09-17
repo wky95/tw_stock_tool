@@ -1,0 +1,49 @@
+__pycache__/
+*.py[cod]
+.DS_Store
+.venv/
+.venv-*/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+build/
+dist/
+.coverage
+htmlcov/
+
+# Secrets and credentials
+.env
+.env.*
+!.env.example
+secrets/
+credentials/
+*credentials*.json
+*credentials*.yaml
+*credentials*.yml
+*.pem
+*.key
+
+# Immutable/derived datasets and runtime checkpoints
+data/cache/
+data/raw/
+data/normalized/
+data/curated/
+data/checkpoints/
+
+# Models, experiment artifacts, and operational output
+artifacts/
+models/
+logs/
+state/
+*.log
+
+# Runtime databases and sidecar files
+*.duckdb
+*.duckdb.wal
+*.sqlite
+*.sqlite3
+*.db
+*.db-shm
+*.db-wal
