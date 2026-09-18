@@ -19,6 +19,12 @@ CALENDAR_DATASET = "trading_calendar"
 UNIVERSE_DATASET = "universe_membership"
 UNIVERSE_METADATA_DATASET = "universe_metadata"
 QUALITY_DATASET = "data_quality_report"
+CORPORATE_ACTION_DATASET = "corporate_actions"
+CANONICAL_PRICE_DATASET = "canonical_daily_prices"
+SPLIT_ADJUSTED_PRICE_DATASET = "split_adjusted_daily_prices"
+TOTAL_RETURN_PRICE_DATASET = "total_return_daily_prices"
+ADJUSTMENT_FACTOR_DATASET = "price_adjustment_factors"
+LABEL_DATASET = "forward_return_labels"
 
 _EXCLUDED_CATEGORIES = {"ETF", "ETN", "存託憑證", "受益證券", "權證"}
 

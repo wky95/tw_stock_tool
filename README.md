@@ -1,6 +1,6 @@
 # Island Quant（島嶼量化）
 
-個人使用、以資金安全與可重現性為優先的台股量化研究與交易系統。專案目前完成 **Phase 0** 與 **Phase 1 Slice 1：point-in-time price data foundation**；feature/label、模型、可信回測、paper broker 與 live broker 尚未由新架構實作。
+個人使用、以資金安全與可重現性為優先的台股量化研究與交易系統。專案目前完成 **Phase 0**、已提交的 **Phase 1 Slice 1**，以及待審核、未提交的 **Slice 2：canonical prices、corporate actions 與 labels**；feature、模型、可信回測、paper broker 與 live broker 尚未由新架構實作。
 
 > 這是工程與研究工具，不保證獲利，也不構成投資建議。Live trading 預設且目前實際不可用。
 
@@ -25,6 +25,14 @@ Phase 1 Slice 1 已提供：
 - Incremental/idempotent ingestion、checkpoint/resume、品質報告。
 - Versioned `UniversePolicy`、每日 membership 與 exclusion reasons。
 - Universe completeness metadata 與預設 fail-closed research gate。
+
+Phase 1 Slice 2 待審核內容：
+
+- Corporate-action revision domain 與 versioned availability policy。
+- Canonical unadjusted、split-adjusted、total-return 與 adjustment-factor views。
+- Candidate/promotion snapshot 與 pinned historical version reader。
+- Canonical market sessions 與 missing-observation classification。
+- 五類 gross forward-return labels，以及 listing/delisting、停牌與 no-lookahead guards。
 
 ## 安裝與驗證
 
@@ -65,6 +73,7 @@ ISLAND_QUANT__TRADING__INITIAL_CASH=2500000 island-quant show-config
 - [ADR 0002：Live fail-closed](docs/adr/0002-live-fail-closed.md)
 - [ADR 0003：Point-in-time 與儲存](docs/adr/0003-point-in-time-and-storage.md)
 - [ADR 0004：Point-in-time Universe](docs/adr/0004-point-in-time-universe.md)
+- [ADR 0005：公司行動、價格視圖、snapshot 與 labels](docs/adr/0005-corporate-actions-price-views-and-labels.md)
 
 ## 設定安全原則
 

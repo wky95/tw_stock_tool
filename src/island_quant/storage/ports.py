@@ -36,6 +36,23 @@ class ArtifactStore(Protocol):
         self, dataset: str, frame: pl.DataFrame, metadata: dict[str, Any]
     ) -> DatasetArtifact: ...
 
+    def stage_dataset(
+        self, dataset: str, frame: pl.DataFrame, metadata: dict[str, Any]
+    ) -> DatasetArtifact: ...
+
+    def promote_dataset(
+        self,
+        dataset: str,
+        version: str,
+        *,
+        expected_current_version: str | None = None,
+        validated: bool = False,
+    ) -> DatasetArtifact: ...
+
+    def read_dataset_version(self, dataset: str, version: str) -> pl.DataFrame: ...
+
+    def current_version(self, dataset: str) -> str | None: ...
+
     def read_latest_dataset(self, dataset: str) -> pl.DataFrame | None: ...
 
     def load_checkpoint(self, job_id: str) -> dict[str, Any]: ...

@@ -14,7 +14,7 @@
 
 所有路徑由 `config/default.yaml` 管理，不使用 home directory 或硬編碼絕對路徑。
 
-## Slice 1：Point-in-time price data foundation（本輪）
+## Slice 1：Point-in-time price data foundation（已提交）
 
 - `data/ports.py`：provider-neutral request/payload/provider protocol。
 - `data/adapters/finmind.py`：單一 production provider、timeout、retry。
@@ -31,20 +31,32 @@
 
 Canonical volume unit 為股數（`shares`）；provider raw value/unit 保留。最早價格推導的 listing date 一律標為 provisional，未經顯式 override 不可當成 production-quality universe。
 
-## Slice 2：Features、labels 與 leakage guards（建議下一輪）
+## Slice 2：Canonical prices、corporate actions 與 labels（已實作，待審核）
+
+- Provider-neutral corporate-action events，保留 revision、announcement/effective/available time 與 provisional quality。
+- Raw/canonical/split-adjusted/total-return/factor 分離；adjusted lineage 與 analytical/PIT 語意明示。
+- Content-addressed candidate snapshot、checksum validation、atomic current promotion 與 pinned version reader。
+- TWSE/TPEx-capable calendar、holiday/unexpected closure 與個股 observation classification。
+- Versioned availability policy；日價 publication/finalization buffer 與 quality-gated decision snapshot。
+- Next-session O2O/O2C、N-session O2O、benchmark-relative、eligible-universe rank labels。
+- Adjustment、交易日、listing/delisting、停牌、no-same-day、promotion failure 與 leakage tests。
+
+精確公式與限制見 ADR 0005。本 Slice 不含 feature 搜尋或 ML。
+
+## Slice 3：Features 與 point-in-time research matrix（建議下一輪）
 
 - Versioned feature registry 與 momentum/reversal/volatility/liquidity baseline。
-- 下一交易日可成交價開始的 forward-return labels。
-- available-at filter、財報公告時間 contract、no-lookahead tests。
-- Cross-sectional transform 僅在當日 eligible universe 內計算。
+- 每個 feature 保存 input versions、lookback、available-at 與 universe policy lineage。
+- Cross-sectional transforms 僅在 decision-date eligible universe 內 fit/transform。
+- 建立可供後續 walk-forward 使用、但尚不訓練模型的 pinned research matrix。
 
-## Slice 3：Walk-forward research 與 baseline model
+## Slice 4：Walk-forward research 與 baseline model
 
 - Expanding/rolling split、purge/embargo、untouched OOS test。
 - Pearson/Spearman IC、ICIR、decay、quantile、turnover、coverage、成本後效果。
 - sklearn Ridge baseline；imputer/scaler/model 每 fold 僅 fit train。
 
-## Slice 4：Experiment tracking 與 OOS report
+## Slice 5：Experiment tracking 與 OOS report
 
 - 成功與失敗 run manifest、data/config/code hash、seed、期間與 artifact lineage。
 - 分開的 TAIEX、TPEx index、eligible-universe benchmark。

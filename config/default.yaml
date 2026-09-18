@@ -24,6 +24,17 @@ universe:
   minimum_trailing_median_traded_value: "5000000"
   minimum_lookback_observations: 20
 
+availability:
+  policy_version: tw-daily-v1
+  publication_time: "17:30:00"
+  finalization_buffer_minutes: 30
+
+dataset_versions:
+  transformation_code_version: phase1-slice2-v1
+  configuration_version: default-v1
+  corporate_action_schema_version: 1
+  label_schema_version: 1
+
 trading:
   mode: backtest
   live_enabled: false

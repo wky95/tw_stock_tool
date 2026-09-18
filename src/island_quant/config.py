@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 from collections.abc import Mapping
+from datetime import time, timedelta
 from decimal import Decimal
 from enum import StrEnum
 from pathlib import Path
@@ -60,6 +61,27 @@ class UniverseSettings(BaseModel):
     minimum_lookback_observations: int = Field(default=20, gt=0)
 
 
+class AvailabilitySettings(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    policy_version: str = "tw-daily-v1"
+    publication_time: time = time(17, 30)
+    finalization_buffer_minutes: int = Field(default=30, ge=0, le=1440)
+
+    @property
+    def finalization_buffer(self) -> timedelta:
+        return timedelta(minutes=self.finalization_buffer_minutes)
+
+
+class DatasetVersionSettings(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    transformation_code_version: str = "phase1-slice2-v1"
+    configuration_version: str = "default-v1"
+    corporate_action_schema_version: int = Field(default=1, gt=0)
+    label_schema_version: int = Field(default=1, gt=0)
+
+
 class TradingSettings(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -98,6 +120,8 @@ class AppSettings(BaseSettings):
     research: ResearchSettings = Field(default_factory=ResearchSettings)
     data: DataSettings = Field(default_factory=DataSettings)
     universe: UniverseSettings = Field(default_factory=UniverseSettings)
+    availability: AvailabilitySettings = Field(default_factory=AvailabilitySettings)
+    dataset_versions: DatasetVersionSettings = Field(default_factory=DatasetVersionSettings)
     trading: TradingSettings = Field(default_factory=TradingSettings)
     logging: LoggingSettings = Field(default_factory=LoggingSettings)
 
