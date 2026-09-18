@@ -1,38 +1,51 @@
-# Phase 1 檔案級計畫與驗收
+# Phase 1 計畫與已確認決策
 
-## 最小垂直切片
+## 不再開放的架構選項
 
-固定、明確版本的台股 universe，從日 K 原始 payload 一路產生 immutable snapshot、point-in-time feature/label dataset、walk-forward baseline model 與 OOS 因子報告；單一 CLI 可重現。
+- Universe：每日 point-in-time TWSE／TPEx 普通股；保留下市股票，排除 ETF、ETN、權證、DR、特別股。
+- Primary provider：FinMind。Domain 與 normalized schema 不接受 FinMind-specific type。
+- 時間：Asia/Taipei；保存 `event_time`、`available_at`、`ingested_at`；決策只讀 `available_at <= decision_time`。
+- 訊號／label：收盤後決策，label 從下一交易日可成交價格開始；不假設精確開盤完全成交。
+- Portfolio：long-only、cash account、無槓桿／融資／融券／當沖、整數股、允許零股。
+- Benchmark：TWSE/TAIEX、TPEx/TPEx index、point-in-time eligible-universe 市值加權基準分開報告。
+- Storage：本機 content-addressed raw、versioned Parquet、DuckDB catalog、manifest/checksum；以 `ArtifactStore` 保留未來 S3/MinIO 接縫。
+- Deployment：macOS Apple Silicon、Python 3.12+ 與 Docker；Phase 1 不部署 VPS/NAS/object storage。
+- Broker：Phase 1 不串接；Phase 3 才重新驗證 Shioaji API、帳戶資格與 macOS arm64 相容性。
 
-## 檔案級計畫
+所有路徑由 `config/default.yaml` 管理，不使用 home directory 或硬編碼絕對路徑。
 
-| 檔案／目錄 | 真實職責 |
-|---|---|
-| `src/island_quant/data/ports.py` | historical source、snapshot catalog protocol |
-| `src/island_quant/data/schema.py` | point-in-time bar、corporate action、universe membership schema |
-| `src/island_quant/data/ingestion.py` | incremental/idempotent ingestion、checkpoint、content hash |
-| `src/island_quant/data/validation.py` | schema、duplicate、missing、OHLC、timestamp、coverage checks |
-| `src/island_quant/data/adapters/<source>.py` | 唯一首發資料源的 payload 轉換；不解析 UI HTML |
-| `src/island_quant/storage/datasets.py` | immutable Parquet snapshot 與 DuckDB catalog |
-| `src/island_quant/features/registry.py` | feature definition metadata、版本、依賴與計算契約 |
-| `src/island_quant/features/baselines.py` | momentum、reversal、volatility、volume/liquidity baseline |
-| `src/island_quant/labels/forward_return.py` | 依 available/decision/execution time 建立多 horizon label |
-| `src/island_quant/research/splits.py` | expanding/rolling walk-forward 與 purge/embargo |
-| `src/island_quant/research/factor_analysis.py` | Pearson/Spearman IC、ICIR、decay、quantile、turnover、coverage |
-| `src/island_quant/research/experiments.py` | 成功與失敗 run、config/data/code hash、metrics/artifact manifest |
-| `src/island_quant/models/baseline.py` | sklearn Pipeline + Ridge，所有 transformer 僅 fit train |
-| `src/island_quant/reports/factor_report.py` | OOS JSON/HTML report，不挑選隱藏失敗 run |
-| `src/island_quant/cli.py` | `ingest-data`、`validate-data`、`build-features`、`train-model`、`evaluate-model` |
-| `tests/data/` | ingestion idempotency、時間欄位、品質錯誤 fixtures |
-| `tests/research/` | no-lookahead、purge/embargo、train-only fitting、determinism tests |
-| `tests/integration/test_research_pipeline.py` | 單一命令 raw-to-OOS report |
+## Slice 1：Point-in-time price data foundation（本輪）
 
-## 驗收標準
+- `data/ports.py`：provider-neutral request/payload/provider protocol。
+- `data/adapters/finmind.py`：單一 production provider、timeout、retry。
+- `data/adapters/fixture.py`：完全離線且固定時間的測試 provider。
+- `data/schema.py`：instrument、listing/delisting、calendar、daily OHLCV normalized schemas。
+- `storage/ports.py` / `storage/local.py`：`ArtifactStore`、immutable raw、Parquet snapshot、manifest、DuckDB views、checkpoint。
+- `data/validation.py`：primary key、價格／成交量、OHLC、缺交易日、unknown historical market 品質報告。
+- `data/universe.py`：具版本的 `UniversePolicy`、每日 membership、完整 exclusion reasons。
+- `universe_metadata`：reference version、coverage、未知市場／暫定上市日計數、排除原因統計與 `is_research_complete` gate。
+- `data/ingestion.py`：incremental merge、idempotency、checkpoint/resume 與 dataset lineage。
+- `cli.py`：`ingest-data`、`validate-data`、fixture、dry-run 與明確 exit code。
 
-- 同一來源資料與設定重跑得到相同 snapshot id 與數值結果。
-- 人工注入未來值的測試證明 feature builder 在 available time 前讀不到它。
-- 重疊 label 不會跨越 purge/embargo 進入相鄰 validation fold。
-- scaler/imputer/model 只在各 fold 的 train 範圍 fit。
-- 報告含資料版本、設定 hash、code version（無 git 時記為 unavailable）、seed、期間、IC/Rank IC/ICIR、quantile spread、turnover、coverage 與含成本結果。
-- 任何 validation failure 或失敗實驗都留下 manifest 並回傳非零 exit code。
+驗收 fixture 包含未上市、下市、ETF、DR、特別股、缺交易日及跨 TWSE/TPEx 資料。網路測試全部標記 `network` 且預設跳過。
 
+Canonical volume unit 為股數（`shares`）；provider raw value/unit 保留。最早價格推導的 listing date 一律標為 provisional，未經顯式 override 不可當成 production-quality universe。
+
+## Slice 2：Features、labels 與 leakage guards（建議下一輪）
+
+- Versioned feature registry 與 momentum/reversal/volatility/liquidity baseline。
+- 下一交易日可成交價開始的 forward-return labels。
+- available-at filter、財報公告時間 contract、no-lookahead tests。
+- Cross-sectional transform 僅在當日 eligible universe 內計算。
+
+## Slice 3：Walk-forward research 與 baseline model
+
+- Expanding/rolling split、purge/embargo、untouched OOS test。
+- Pearson/Spearman IC、ICIR、decay、quantile、turnover、coverage、成本後效果。
+- sklearn Ridge baseline；imputer/scaler/model 每 fold 僅 fit train。
+
+## Slice 4：Experiment tracking 與 OOS report
+
+- 成功與失敗 run manifest、data/config/code hash、seed、期間與 artifact lineage。
+- 分開的 TAIEX、TPEx index、eligible-universe benchmark。
+- 單一 CLI 從 raw snapshot 重現 OOS report。

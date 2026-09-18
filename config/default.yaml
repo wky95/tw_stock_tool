@@ -7,6 +7,23 @@ research:
   data_root: data
   artifact_root: artifacts
 
+data:
+  provider: finmind
+  raw_root: data/raw
+  normalized_root: data/normalized
+  checkpoint_root: state/ingestion
+  catalog_path: state/catalog.duckdb
+  schema_version: 1
+  request_attempts: 4
+  request_timeout_seconds: 30
+
+universe:
+  policy_version: tw-equity-v1
+  minimum_listing_days: 60
+  trailing_median_window: 20
+  minimum_trailing_median_traded_value: "5000000"
+  minimum_lookback_observations: 20
+
 trading:
   mode: backtest
   live_enabled: false
@@ -19,4 +36,3 @@ trading:
 logging:
   level: INFO
   json: true
-

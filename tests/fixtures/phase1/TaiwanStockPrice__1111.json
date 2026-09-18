@@ -1,0 +1,12 @@
+{
+  "status": 200,
+  "msg": "success",
+  "data": [
+    {"date": "2024-01-02", "stock_id": "1111", "Trading_Volume": 1000, "Trading_money": 100000, "open": 100, "max": 102, "min": 99, "close": 101, "Trading_turnover": 100},
+    {"date": "2024-01-03", "stock_id": "1111", "Trading_Volume": 1100, "Trading_money": 112000, "open": 101, "max": 103, "min": 100, "close": 102, "Trading_turnover": 110},
+    {"date": "2024-01-04", "stock_id": "1111", "Trading_Volume": 1200, "Trading_money": 123000, "open": 102, "max": 104, "min": 101, "close": 103, "Trading_turnover": 120},
+    {"date": "2024-01-08", "stock_id": "1111", "Trading_Volume": 1300, "Trading_money": 135000, "open": 103, "max": 105, "min": 102, "close": 104, "Trading_turnover": 130},
+    {"date": "2024-01-09", "stock_id": "1111", "Trading_Volume": 1400, "Trading_money": 147000, "open": 104, "max": 106, "min": 103, "close": 105, "Trading_turnover": 140},
+    {"date": "2024-01-10", "stock_id": "1111", "Trading_Volume": 1500, "Trading_money": 159000, "open": 105, "max": 107, "min": 104, "close": 106, "Trading_turnover": 150}
+  ]
+}

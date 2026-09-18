@@ -11,6 +11,8 @@ requires-python = ">=3.12"
 license = { text = "Proprietary" }
 authors = [{ name = "Island Quant" }]
 dependencies = [
+  "duckdb>=1.4,<2",
+  "polars>=1.35,<2",
   "pydantic>=2.10,<3",
   "pydantic-settings>=2.6,<3",
   "PyYAML>=6.0,<7",
@@ -34,9 +36,12 @@ package-dir = { "" = "src" }
 where = ["src"]
 
 [tool.pytest.ini_options]
-addopts = "-ra --strict-markers"
+addopts = "-ra --strict-markers -m 'not network'"
 testpaths = ["tests"]
 pythonpath = ["."]
+markers = [
+  "network: tests that call external provider APIs (excluded by default)",
+]
 
 [tool.ruff]
 line-length = 100

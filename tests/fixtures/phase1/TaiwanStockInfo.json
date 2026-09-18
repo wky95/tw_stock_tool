@@ -1,0 +1,12 @@
+{
+  "status": 200,
+  "msg": "success",
+  "data": [
+    {"date": "2024-01-10", "industry_category": "半導體業", "stock_id": "1111", "stock_name": "甲公司", "type": "twse"},
+    {"date": "2024-01-07", "industry_category": "電子工業", "stock_id": "2222", "stock_name": "乙公司", "type": "tpex"},
+    {"date": "2024-01-10", "industry_category": "其他", "stock_id": "3333", "stock_name": "丙公司", "type": "twse"},
+    {"date": "2024-01-10", "industry_category": "ETF", "stock_id": "0050", "stock_name": "測試ETF", "type": "twse"},
+    {"date": "2024-01-10", "industry_category": "存託憑證", "stock_id": "9103", "stock_name": "測試-DR", "type": "twse"},
+    {"date": "2024-01-10", "industry_category": "金融保險", "stock_id": "2881A", "stock_name": "測試特", "type": "twse"}
+  ]
+}

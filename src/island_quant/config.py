@@ -35,6 +35,31 @@ class ResearchSettings(BaseModel):
     artifact_root: Path = Path("artifacts")
 
 
+class DataSettings(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    provider: str = "finmind"
+    raw_root: Path = Path("data/raw")
+    normalized_root: Path = Path("data/normalized")
+    checkpoint_root: Path = Path("state/ingestion")
+    catalog_path: Path = Path("state/catalog.duckdb")
+    schema_version: int = Field(default=1, gt=0)
+    request_attempts: int = Field(default=4, gt=0, le=10)
+    request_timeout_seconds: float = Field(default=30, gt=0, le=120)
+
+
+class UniverseSettings(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    policy_version: str = "tw-equity-v1"
+    minimum_listing_days: int = Field(default=60, ge=0)
+    trailing_median_window: int = Field(default=20, gt=0)
+    minimum_trailing_median_traded_value: Decimal = Field(
+        default=Decimal("5000000"), ge=0
+    )
+    minimum_lookback_observations: int = Field(default=20, gt=0)
+
+
 class TradingSettings(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -71,6 +96,8 @@ class AppSettings(BaseSettings):
     timezone: str = "Asia/Taipei"
     base_currency: str = "TWD"
     research: ResearchSettings = Field(default_factory=ResearchSettings)
+    data: DataSettings = Field(default_factory=DataSettings)
+    universe: UniverseSettings = Field(default_factory=UniverseSettings)
     trading: TradingSettings = Field(default_factory=TradingSettings)
     logging: LoggingSettings = Field(default_factory=LoggingSettings)
 
