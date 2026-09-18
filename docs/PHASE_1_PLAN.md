@@ -31,7 +31,7 @@
 
 Canonical volume unit 為股數（`shares`）；provider raw value/unit 保留。最早價格推導的 listing date 一律標為 provisional，未經顯式 override 不可當成 production-quality universe。
 
-## Slice 2：Canonical prices、corporate actions 與 labels（已實作，待審核）
+## Slice 2：Canonical prices、corporate actions 與 labels（已提交）
 
 - Provider-neutral corporate-action events，保留 revision、announcement/effective/available time 與 provisional quality。
 - Raw/canonical/split-adjusted/total-return/factor 分離；adjusted lineage 與 analytical/PIT 語意明示。
@@ -43,7 +43,7 @@ Canonical volume unit 為股數（`shares`）；provider raw value/unit 保留�
 
 精確公式與限制見 ADR 0005。本 Slice 不含 feature 搜尋或 ML。
 
-## Slice 3：Features 與 factor research（已實作，待審核）
+## Slice 3：Features 與 factor research（已提交）
 
 - Versioned feature registry、14 個 OHLCV baseline factors 與 deterministic feature-set manifest。
 - PIT rolling engine、composable preprocessing、candidate materialization 與 row lineage inspect。
@@ -51,14 +51,21 @@ Canonical volume unit 為股數（`shares`）；provider raw value/unit 保留�
 - Exploratory/validated completeness gate 與完全 pinned CLI。
 - 尚未訓練任何 ML model。
 
-## Slice 4：Walk-forward research 與 baseline model
+## Slice 4：Leakage-safe ML baseline（已實作，待審核）
 
-- Expanding/rolling split、purge/embargo、untouched OOS test。
-- Pearson/Spearman IC、ICIR、decay、quantile、turnover、coverage、成本後效果。
-- sklearn Ridge baseline；imputer/scaler/model 每 fold 僅 fit train。
+- Exact-time supervised dataset，固定 feature order/dtype，完整上游版本與 deterministic checksum。
+- Expanding／rolling walk-forward；以實際 label interval purge，以交易 session embargo，final holdout 不參與選模。
+- 每 fold 僅以 train fit median imputation、winsorization、standardization。
+- Dummy mean／zero、weighted linear、Ridge 小型 grid、Elastic Net 小型 grid；不含 tree boosting。
+- 預設每個 decision date 總權重相同；validation daily Spearman IC 選模，test 永不選模。
+- Immutable OOS ledger、fold/aggregate metrics、decision-date block bootstrap、完整 candidate inventory。
+- JSON-only Candidate model artifact、Git/source-tree provenance、model card 與 promotion fail-closed gate。
+- `build-ml-dataset`、`run-ml-experiment`、`inspect-experiment`、`generate-model-card`，皆要求 pinned version 並支援 dry-run。
 
-## Slice 5：Experiment tracking 與 OOS report
+精確契約與限制見 ADR 0007。本 Slice 僅報 gross-before-costs，不宣稱可交易 alpha。
 
-- 成功與失敗 run manifest、data/config/code hash、seed、期間與 artifact lineage。
-- 分開的 TAIEX、TPEx index、eligible-universe benchmark。
-- 單一 CLI 從 raw snapshot 重現 OOS report。
+## Slice 5：Research benchmark 與 consolidated OOS report（建議）
+
+- 補齊 point-in-time 市值權重 benchmark 與 TAIEX／TPEx index 分開歸因。
+- 將 factor 與 ML OOS 結果整合為單一、完全 pinned 的可重現研究報告。
+- 加入 multiple-testing correction 所需統計與正式 holdout access audit workflow。

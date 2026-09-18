@@ -7,6 +7,7 @@ import hashlib
 import json
 import os
 import sys
+from datetime import UTC, datetime
 from importlib.metadata import version
 from pathlib import Path
 
@@ -31,6 +32,21 @@ from island_quant.features.baseline import BASELINE_FEATURE_VERSION, baseline_re
 from island_quant.features.engine import FeatureEngine
 from island_quant.features.materialization import FeatureMaterializer
 from island_quant.logging import configure_logging
+from island_quant.ml.artifacts import (
+    ExperimentStore,
+    read_supervised_manifest,
+    write_supervised_manifest,
+)
+from island_quant.ml.dataset import (
+    MissingFeaturePolicy,
+    SupervisedDataset,
+    SupervisedDatasetBuilder,
+    TargetContract,
+    manifest_from_dict,
+)
+from island_quant.ml.experiment import BaselineExperimentRunner
+from island_quant.ml.splitting import SplitMethod, WalkForwardConfig, WalkForwardSplitter
+from island_quant.ml.weighting import SampleWeightPolicy
 from island_quant.research.completeness import ResearchCompleteness
 from island_quant.research.factor_evaluation import FactorEvaluator
 from island_quant.storage.local import LocalArtifactStore
@@ -74,6 +90,15 @@ def build_parser() -> argparse.ArgumentParser:
     report = subparsers.add_parser("generate-factor-report")
     _add_evaluation_arguments(report)
     report.add_argument("--output", type=Path, required=True)
+    ml_dataset = subparsers.add_parser("build-ml-dataset")
+    _add_ml_dataset_arguments(ml_dataset)
+    experiment = subparsers.add_parser("run-ml-experiment")
+    _add_ml_experiment_arguments(experiment)
+    inspect_experiment = subparsers.add_parser("inspect-experiment")
+    inspect_experiment.add_argument("--experiment-artifact-version", required=True)
+    card = subparsers.add_parser("generate-model-card")
+    card.add_argument("--experiment-artifact-version", required=True)
+    card.add_argument("--output", type=Path, required=True)
     return parser
 
 
@@ -103,6 +128,14 @@ def main(argv: list[str] | None = None) -> int:
         return _inspect_feature(args, settings)
     elif args.command in {"evaluate-factor", "generate-factor-report"}:
         return _evaluate_factor(args, settings)
+    elif args.command == "build-ml-dataset":
+        return _build_ml_dataset(args, settings)
+    elif args.command == "run-ml-experiment":
+        return _run_ml_experiment(args, settings)
+    elif args.command == "inspect-experiment":
+        return _inspect_experiment(args, settings)
+    elif args.command == "generate-model-card":
+        return _generate_model_card(args, settings)
     return 0
 
 
@@ -122,6 +155,64 @@ def _add_evaluation_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--universe-metadata-version", required=True)
     parser.add_argument("--feature", required=True)
     parser.add_argument("--direction", choices=("long_high", "long_low"), default="long_high")
+    parser.add_argument("--dry-run", action="store_true")
+
+
+def _add_ml_dataset_arguments(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument("--supervised-version", required=True)
+    parser.add_argument("--feature-set-version", required=True)
+    parser.add_argument("--feature-artifact-version", required=True)
+    parser.add_argument("--label-artifact-version", required=True)
+    parser.add_argument("--label-version", required=True)
+    parser.add_argument("--universe-version", required=True)
+    parser.add_argument("--dataset-version", required=True)
+    parser.add_argument("--availability-policy-version", required=True)
+    parser.add_argument("--features", required=True)
+    parser.add_argument(
+        "--target-kind",
+        required=True,
+        choices=(
+            "raw_forward_return",
+            "benchmark_relative_forward_return",
+            "cross_sectional_rank",
+        ),
+    )
+    parser.add_argument("--return-horizon", type=int, required=True)
+    parser.add_argument("--entry-definition", required=True)
+    parser.add_argument("--exit-definition", required=True)
+    parser.add_argument("--benchmark-definition")
+    parser.add_argument("--rank-direction")
+    parser.add_argument(
+        "--missing-feature-policy",
+        choices=tuple(item.value for item in MissingFeaturePolicy),
+        default=MissingFeaturePolicy.INVALID.value,
+    )
+    parser.add_argument("--dry-run", action="store_true")
+
+
+def _add_ml_experiment_arguments(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument("--experiment-id", required=True)
+    parser.add_argument("--supervised-version", required=True)
+    parser.add_argument("--supervised-artifact-version", required=True)
+    parser.add_argument("--calendar-version", required=True)
+    parser.add_argument("--universe-metadata-version", required=True)
+    parser.add_argument(
+        "--split-method", choices=tuple(item.value for item in SplitMethod), required=True
+    )
+    parser.add_argument("--split-version", required=True)
+    parser.add_argument("--train-sessions", type=int, required=True)
+    parser.add_argument("--validation-sessions", type=int, required=True)
+    parser.add_argument("--test-sessions", type=int, required=True)
+    parser.add_argument("--step-sessions", type=int, required=True)
+    parser.add_argument("--embargo-sessions", type=int, default=0)
+    parser.add_argument("--final-holdout-sessions", type=int, default=0)
+    parser.add_argument(
+        "--sample-weight-policy",
+        choices=tuple(item.value for item in SampleWeightPolicy),
+        default=SampleWeightPolicy.EQUAL_DECISION_DATE.value,
+    )
+    parser.add_argument("--bootstrap-block-length", type=int, default=5)
+    parser.add_argument("--bootstrap-resamples", type=int, default=100)
     parser.add_argument("--dry-run", action="store_true")
 
 
@@ -479,6 +570,196 @@ def _evaluate_factor(args: argparse.Namespace, settings: AppSettings) -> int:
                 "artifact_path": str(output) if output else None,
                 "version": args.feature_set_version,
                 "checksum": checksum,
+            },
+            sort_keys=True,
+        )
+    )
+    return 0
+
+
+def _build_ml_dataset(args: argparse.Namespace, settings: AppSettings) -> int:
+    plan = {
+        "supervised_version": args.supervised_version,
+        "feature_artifact_version": args.feature_artifact_version,
+        "label_artifact_version": args.label_artifact_version,
+        "universe_version": args.universe_version,
+        "dataset_version": args.dataset_version,
+        "availability_policy_version": args.availability_policy_version,
+        "features": args.features,
+        "target_kind": args.target_kind,
+    }
+    if args.dry_run:
+        print(json.dumps({"dry_run": True, "plan": plan}, sort_keys=True))
+        return 0
+    feature_names = tuple(item.strip() for item in args.features.split(",") if item.strip())
+    store = _store(settings)
+    features = store.read_dataset_version(
+        f"features__{args.feature_set_version}", args.feature_artifact_version
+    ).filter(pl.col("feature_name").is_in(feature_names))
+    labels = store.read_dataset_version(
+        "forward_return_labels", args.label_artifact_version
+    ).filter(pl.col("label_version") == args.label_version)
+    universe = store.read_dataset_version("universe_membership", args.universe_version)
+    target = TargetContract(
+        kind=args.target_kind,
+        label_version=args.label_version,
+        return_horizon=args.return_horizon,
+        entry_definition=args.entry_definition,
+        exit_definition=args.exit_definition,
+        return_semantics="gross_before_costs",
+        benchmark_definition=args.benchmark_definition,
+        rank_direction=args.rank_direction,
+    )
+    supervised = SupervisedDatasetBuilder().build(
+        features,
+        labels,
+        universe,
+        version=args.supervised_version,
+        feature_names=feature_names,
+        feature_set_version=args.feature_set_version,
+        feature_artifact_version=args.feature_artifact_version,
+        label_artifact_version=args.label_artifact_version,
+        universe_version=args.universe_version,
+        dataset_version=args.dataset_version,
+        availability_policy_version=args.availability_policy_version,
+        target=target,
+        missing_feature_policy=MissingFeaturePolicy(args.missing_feature_policy),
+    )
+    artifact = store.stage_dataset(
+        f"ml_supervised__{args.supervised_version}",
+        supervised.frame,
+        {
+            "schema_version": 1,
+            "source_checksums": [
+                args.feature_artifact_version,
+                args.label_artifact_version,
+                args.universe_version,
+                args.dataset_version,
+            ],
+            "transformation_algorithm_version": "supervised-exact-time-join-v1",
+            "configuration_version": args.supervised_version,
+            "configuration": plan,
+        },
+    )
+    manifest_path = write_supervised_manifest(
+        settings.research.artifact_root, supervised.manifest, artifact.checksum
+    )
+    print(
+        json.dumps(
+            {
+                "status": "candidate",
+                "artifact_version": artifact.checksum,
+                "checksum": supervised.manifest.checksum,
+                "manifest_path": str(manifest_path),
+                "rows": artifact.row_count,
+            },
+            sort_keys=True,
+        )
+    )
+    return 0
+
+
+def _run_ml_experiment(args: argparse.Namespace, settings: AppSettings) -> int:
+    plan = {
+        "experiment_id": args.experiment_id,
+        "supervised_version": args.supervised_version,
+        "supervised_artifact_version": args.supervised_artifact_version,
+        "calendar_version": args.calendar_version,
+        "universe_metadata_version": args.universe_metadata_version,
+        "split_method": args.split_method,
+        "split_version": args.split_version,
+    }
+    if args.dry_run:
+        print(json.dumps({"dry_run": True, "plan": plan}, sort_keys=True))
+        return 0
+    store = _store(settings)
+    frame = store.read_dataset_version(
+        f"ml_supervised__{args.supervised_version}", args.supervised_artifact_version
+    )
+    manifest_payload = read_supervised_manifest(
+        settings.research.artifact_root, args.supervised_artifact_version
+    )
+    manifest = manifest_from_dict(manifest_payload)
+    if manifest.version != args.supervised_version:
+        raise ValueError("supervised version does not match its pinned manifest")
+    calendar = _canonical_calendar(
+        store.read_dataset_version("trading_calendar", args.calendar_version)
+    )
+    sessions = sorted(calendar.sessions["trade_date"].unique().to_list())
+    splitter = WalkForwardSplitter(
+        WalkForwardConfig(
+            version=args.split_version,
+            method=SplitMethod(args.split_method),
+            train_sessions=args.train_sessions,
+            validation_sessions=args.validation_sessions,
+            test_sessions=args.test_sessions,
+            step_sessions=args.step_sessions,
+            embargo_sessions=args.embargo_sessions,
+            final_holdout_sessions=args.final_holdout_sessions,
+        ),
+        sessions,
+    )
+    splits = splitter.split(frame)
+    if not splits.folds:
+        raise ValueError("walk-forward configuration produced no folds")
+    metadata = store.read_dataset_version(
+        "universe_metadata", args.universe_metadata_version
+    )
+    completeness = _completeness(
+        metadata,
+        dataset_version=manifest.dataset_version,
+        feature_set_version=manifest.feature_set_version,
+        label_version=manifest.label_version,
+        availability_version=manifest.availability_policy_version,
+    )
+    result = BaselineExperimentRunner(
+        random_seed=settings.research.random_seed,
+        sample_weight_policy=SampleWeightPolicy(args.sample_weight_policy),
+    ).run(
+        SupervisedDataset(frame, manifest),
+        splits,
+        completeness,
+        experiment_id=args.experiment_id,
+        created_at=datetime.now(UTC),
+        bootstrap_block_length=args.bootstrap_block_length,
+        bootstrap_resamples=args.bootstrap_resamples,
+    )
+    checksum, artifact_path = ExperimentStore(settings.research.artifact_root).save(result)
+    print(
+        json.dumps(
+            {
+                "status": "candidate",
+                "experiment_id": result.experiment_id,
+                "artifact_version": checksum,
+                "checksum": checksum,
+                "artifact_path": str(artifact_path),
+                "completeness_status": completeness.classification,
+            },
+            sort_keys=True,
+        )
+    )
+    return 0
+
+
+def _inspect_experiment(args: argparse.Namespace, settings: AppSettings) -> int:
+    payload = ExperimentStore(settings.research.artifact_root).inspect(
+        args.experiment_artifact_version
+    )
+    print(json.dumps(payload, default=str, sort_keys=True))
+    return 0
+
+
+def _generate_model_card(args: argparse.Namespace, settings: AppSettings) -> int:
+    checksum = ExperimentStore(settings.research.artifact_root).write_model_card(
+        args.experiment_artifact_version, args.output
+    )
+    print(
+        json.dumps(
+            {
+                "status": "candidate",
+                "experiment_artifact_version": args.experiment_artifact_version,
+                "checksum": checksum,
+                "artifact_path": str(args.output),
             },
             sort_keys=True,
         )

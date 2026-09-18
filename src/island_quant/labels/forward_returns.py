@@ -186,6 +186,15 @@ class ForwardReturnLabelBuilder:
         earliest_execution_time = (
             datetime.combine(entry_date, time(9, 0), tzinfo=MARKET_TIMEZONE) if entry_date else None
         )
+        label_interval_end = (
+            datetime.combine(
+                exit_date,
+                time(13, 30) if exit_field == "close" else time(9, 0),
+                tzinfo=MARKET_TIMEZONE,
+            )
+            if exit_date
+            else None
+        )
         return {
             "decision_date": decision_date,
             "decision_time": self.availability_policy.decision_time(decision_date),
@@ -200,6 +209,8 @@ class ForwardReturnLabelBuilder:
             "entry_observation": self._observation(entry_date, entry, "open"),
             "exit_observation": self._observation(exit_date, exit_row, exit_field),
             "earliest_execution_time": earliest_execution_time,
+            "label_interval_start": earliest_execution_time,
+            "label_interval_end": label_interval_end,
             "dataset_version": dataset_version,
             "price_view_version": price_view_version,
             "label_version": spec.version,
