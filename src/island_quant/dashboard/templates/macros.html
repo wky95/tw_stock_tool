@@ -1,0 +1,10 @@
+{% macro chart(series, kind='line', height='220') %}
+<div class="chart" data-chart="{{ kind }}" style="--chart-height: {{ height }}px">
+  <canvas aria-label="{{ series.name }} chart"></canvas>
+  <script type="application/json">{{ series.model_dump_json() | safe }}</script>
+</div>
+{% endmacro %}
+
+{% macro status_badge(status) %}
+<span class="status status-{{ status|lower|replace(' ', '-') }}">{{ status }}</span>
+{% endmacro %}

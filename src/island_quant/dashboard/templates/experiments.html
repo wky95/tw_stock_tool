@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}ML Experiments · Island Quant{% endblock %}
+{% block content %}
+<div class="page-heading"><div><p class="eyebrow">Leakage-safe baselines</p><h1>ML Experiments</h1><p>Walk-forward Candidate models using deterministic synthetic fixtures.</p></div><span class="read-only">CANDIDATE ONLY</span></div>
+<div class="warning-callout">Synthetic experiment results are engineering checks, not production evidence.</div>
+<section class="panel"><div class="table-wrap"><table class="data-table sortable"><thead><tr><th>Experiment</th><th>Created</th><th>Target</th><th>Model</th><th>Folds</th><th>Feature set</th><th>Validation Rank IC</th><th>Test Rank IC</th><th>MAE</th><th>RMSE</th><th>Completeness</th><th>Status</th></tr></thead><tbody>
+{% for exp in view.items %}<tr><td><a href="/experiments/{{ exp.experiment_id }}">{{ exp.experiment_id }}</a></td><td>{{ exp.created_at.strftime('%Y-%m-%d') }}</td><td>{{ exp.target }}</td><td>{{ exp.model }}</td><td>{{ exp.fold_count }}</td><td>{{ exp.feature_set }}</td><td>{{ '%.3f'|format(exp.validation_rank_ic) }}</td><td>{{ '%.3f'|format(exp.test_rank_ic) }}</td><td>{{ '%.5f'|format(exp.mae) }}</td><td>{{ '%.5f'|format(exp.rmse) }}</td><td><span class="status status-exploratory">{{ exp.completeness }}</span></td><td><span class="status status-candidate">{{ exp.status }}</span></td></tr>{% endfor %}
+</tbody></table></div></section>
+{% endblock %}

@@ -1,0 +1,17 @@
+{% extends "base.html" %}{% from "macros.html" import chart %}
+{% block title %}{{ view.summary.experiment_id }} · Island Quant{% endblock %}
+{% block content %}
+<div class="breadcrumb"><a href="/experiments">ML Experiments</a><span>/</span>{{ view.summary.experiment_id }}</div>
+<div class="page-heading"><div><p class="eyebrow">Candidate model · {{ view.summary.model }}</p><h1>{{ view.summary.experiment_id }}</h1><p>{{ view.summary.target }} · {{ view.sample_weight_policy }}</p></div><span class="status status-candidate">Candidate</span></div>
+<div class="warning-callout strong">{{ view.synthetic_warning }}</div>
+<section class="detail-grid"><article class="panel"><div class="panel-head"><h2>Model card</h2></div><dl class="definition-grid compact">{% for key,value in view.model_card.items() %}<div><dt>{{ key }}</dt><dd>{{ value }}</dd></div>{% endfor %}</dl></article>
+<article class="panel"><div class="panel-head"><h2>Artifact lineage</h2></div><dl class="definition-grid compact">{% for key,value in view.versions.items() %}<div><dt>{{ key }}</dt><dd class="mono">{{ value }}</dd></div>{% endfor %}</dl></article>
+<article class="panel span-2"><div class="panel-head"><h2>Train / validation / test timeline</h2><span>Purge {{ view.purge_count }} · Embargo {{ view.embargo_count }}</span></div><div class="timeline">{% for fold in view.folds %}<div><strong>{{ fold.fold_id }}</strong><span class="train">Train {{ fold.train }}</span><span class="validation">Validation {{ fold.validation }}</span><span class="test">Test {{ fold.test }}</span></div>{% endfor %}</div></article>
+<article class="panel"><div class="panel-head"><h2>Prediction distribution</h2></div>{{ chart(view.prediction_distribution, 'bar') }}</article>
+<article class="panel"><div class="panel-head"><h2>Daily OOS Rank IC</h2></div>{{ chart(view.daily_rank_ic) }}</article>
+<article class="panel"><div class="panel-head"><h2>Quantile returns</h2><span>Gross before costs</span></div>{{ chart(view.quantile_returns, 'bar') }}</article>
+<article class="panel"><div class="panel-head"><h2>Bootstrap confidence</h2><span>Decision-date blocks</span></div><div class="interval"><span>{{ '%.2f'|format(view.bootstrap_interval[0]) }}</span><div></div><span>{{ '%.2f'|format(view.bootstrap_interval[1]) }}</span></div><p class="muted">Seed {{ view.bootstrap_config.seed }} · block {{ view.bootstrap_config.block_length }} · {{ view.bootstrap_config.resamples }} resamples</p><p>Holdout access count <strong>{{ view.holdout_access_count }}</strong></p></article>
+<article class="panel span-2"><div class="panel-head"><h2>Fold metrics</h2></div><div class="table-wrap"><table class="data-table"><thead><tr><th>Fold</th><th>Validation IC</th><th>Test IC</th><th>Purged</th><th>Embargoed</th></tr></thead><tbody>{% for fold in view.folds %}<tr><td>{{ fold.fold_id }}</td><td>{{ fold.validation_rank_ic }}</td><td>{{ fold.test_rank_ic }}</td><td>{{ fold.purged }}</td><td>{{ fold.embargoed }}</td></tr>{% endfor %}</tbody></table></div></article>
+</section>
+<section class="registry-panel"><div><p class="eyebrow">Model registry</p><h2>Promotion unavailable</h2><p>Candidate is visible for inspection only.</p></div><ul>{% for reason in view.promotion_reasons %}<li>{{ reason }}</li>{% endfor %}</ul><button disabled>Promote model</button></section>
+{% endblock %}

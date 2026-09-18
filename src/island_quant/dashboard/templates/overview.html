@@ -1,0 +1,20 @@
+{% extends "base.html" %}{% from "macros.html" import chart, status_badge %}
+{% block title %}Overview · Island Quant{% endblock %}
+{% block content %}
+<div class="page-heading"><div><p class="eyebrow">Research workspace</p><h1>Overview</h1><p>Phase 1 engineering status and synthetic research diagnostics.</p></div><span class="read-only">READ ONLY</span></div>
+<section class="summary-grid">
+  {% for card in view.cards %}<article class="summary-card {{ card.status }}"><span>{{ card.label }}</span><strong>{{ card.value }}</strong>{% if card.note %}<small>{{ card.note }}</small>{% endif %}</article>{% endfor %}
+</section>
+<section class="panel"><div class="panel-head"><div><p class="eyebrow">Delivery map</p><h2>Research status</h2></div><p>Phase 1 engineering is complete. Validation remains blocked by PIT reference gaps.</p></div>
+  <div class="pipeline">{% for stage in view.pipeline %}<div class="pipeline-step"><span class="step-number">{{ '%02d'|format(stage.order) }}</span><div><strong>{{ stage.name }}</strong><small>{{ stage.detail }}</small></div>{{ status_badge(stage.status) }}</div>{% endfor %}</div>
+</section>
+<section class="chart-grid">
+  <article class="panel"><div class="panel-head"><h2>Universe coverage</h2><span>% eligible</span></div>{{ chart(view.coverage) }}</article>
+  <article class="panel"><div class="panel-head"><h2>Feature validity</h2><span>valid vs missing</span></div><div class="chart multi-chart" data-multi-chart="line"><canvas></canvas>{% for s in view.feature_validity %}<script type="application/json">{{ s.model_dump_json()|safe }}</script>{% endfor %}</div></article>
+  <article class="panel"><div class="panel-head"><h2>Daily sample count</h2><span>synthetic panel</span></div>{{ chart(view.daily_samples, 'bar') }}</article>
+  <article class="panel"><div class="panel-head"><h2>Quality issues</h2><span>by category</span></div>{{ chart(view.quality_categories, 'bar') }}</article>
+</section>
+<section class="panel"><div class="panel-head"><h2>Recent activity</h2><span>All events are demonstrations</span></div>
+  <div class="activity-list">{% for event in view.recent_activity %}<div><time>{{ event.created_at.strftime('%H:%M') }}</time><span class="badge badge-demo">DEMO</span><strong>{{ event.kind }}</strong><p>{{ event.message }}</p></div>{% endfor %}</div>
+</section>
+{% endblock %}

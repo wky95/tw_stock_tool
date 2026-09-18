@@ -1,0 +1,23 @@
+{% extends "base.html" %}{% from "macros.html" import status_badge %}
+{% block title %}Data Health · Island Quant{% endblock %}
+{% block content %}
+<div class="page-heading"><div><p class="eyebrow">Point-in-time controls</p><h1>Data Health</h1><p>Immutable demo snapshot metadata and unresolved quality conditions.</p></div>{{ status_badge('Exploratory') }}</div>
+<section class="metadata-grid">
+  <div><span>Dataset</span><strong>{{ view.dataset_version }}</strong></div><div><span>Raw source</span><strong>{{ view.raw_source }}</strong></div>
+  <div><span>Date range</span><strong>{{ view.date_range }}</strong></div><div><span>Instruments / rows</span><strong>{{ view.instruments }} / {{ view.rows }}</strong></div>
+  <div><span>Checksum</span><strong class="mono">{{ view.checksum_short }}…</strong></div><div><span>Provenance</span><strong>{{ view.provenance }}</strong></div>
+  <div><span>Availability</span><strong>{{ view.availability_policy }}</strong></div><div><span>Completeness</span><strong class="text-warning">{{ view.completeness }}</strong></div>
+</section>
+<section class="panel"><div class="panel-head"><div><p class="eyebrow">Quality register</p><h2>Open and documented issues</h2></div><span>{{ view.issues.total }} fixture records</span></div>
+  <form class="filters" data-issue-filters>
+    <label>Category<select name="category"><option value="">All</option>{% for category in view.issue_counts %}<option value="{{ category }}">{{ category|replace('_',' ') }}</option>{% endfor %}</select></label>
+    <label>Severity<select name="severity"><option value="">All</option><option>error</option><option>warning</option><option>info</option></select></label>
+    <label>Instrument<input name="instrument" placeholder="D1001"></label>
+    <label>From<input name="start_date" type="date"></label><label>To<input name="end_date" type="date"></label>
+    <label>Sort<select name="sort"><option value="date_desc">Newest</option><option value="date_asc">Oldest</option><option value="severity">Severity</option></select></label>
+  </form>
+  <div class="table-wrap"><table class="data-table sortable"><thead><tr><th>Instrument</th><th>Date</th><th>Category</th><th>Severity</th><th>Reason</th><th>Source</th><th>Resolution</th></tr></thead><tbody data-issue-rows>
+    {% for issue in view.issues.items %}<tr data-issue='{{ issue.model_dump_json()|forceescape }}'><td><button class="link-button" data-issue-open>{{ issue.instrument_id }}</button></td><td>{{ issue.event_date }}</td><td>{{ issue.category|replace('_',' ') }}</td><td><span class="severity severity-{{ issue.severity }}">{{ issue.severity }}</span></td><td>{{ issue.reason }}</td><td>{{ issue.source }}</td><td>{{ issue.resolution_status }}</td></tr>{% endfor %}
+  </tbody></table></div><p class="table-status" data-issue-status>Showing {{ view.issues.items|length }} of {{ view.issues.total }} synthetic issues</p>
+</section>
+{% endblock %}

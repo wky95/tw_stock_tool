@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block title %}Backtests · Island Quant{% endblock %}
+{% block content %}
+<div class="page-heading"><div><p class="eyebrow">Phase 2 paused</p><h1>{{ view.title }}</h1><p>No equity curve, PnL, Sharpe ratio, or drawdown has been fabricated.</p></div><span class="status status-not-started">Not started</span></div>
+<section class="empty-state"><div class="empty-mark">BT</div><h2>Honest empty state</h2><p>The research pipeline ends at out-of-sample predictions. A trustworthy portfolio simulator is the next engineering boundary.</p><div class="planned-grid">{% for item in view.planned_capabilities %}<span>{{ item }}</span>{% endfor %}</div></section>
+<section class="panel"><div class="panel-head"><h2>Reserved report fields</h2><span>Wireframe only</span></div><div class="summary-grid compact-cards">{% for name,value in view.metrics.items() %}<article class="summary-card"><span>{{ name }}</span><strong>{{ value }}</strong></article>{% endfor %}</div></section>
+{% endblock %}

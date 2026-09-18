@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Island Quant{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('dashboard-assets', path='/dashboard.css') }}">
+  <script defer src="{{ url_for('dashboard-assets', path='/dashboard.js') }}"></script>
+</head>
+<body>
+  <aside class="sidebar" id="sidebar">
+    <a class="brand" href="/" aria-label="Island Quant overview">
+      <span class="brand-mark">IQ</span><span><strong>Island Quant</strong><small>Research Console</small></span>
+    </a>
+    <nav aria-label="Primary navigation">
+      <a class="nav-item {{ 'active' if active == 'overview' }}" href="/"><span>OV</span>Overview</a>
+      <a class="nav-item {{ 'active' if active == 'data-health' }}" href="/data-health"><span>DH</span>Data Health</a>
+      <a class="nav-item {{ 'active' if active == 'factors' }}" href="/factors"><span>FX</span>Factors</a>
+      <a class="nav-item {{ 'active' if active == 'experiments' }}" href="/experiments"><span>ML</span>ML Experiments</a>
+      <a class="nav-item {{ 'active' if active == 'backtests' }}" href="/backtests"><span>BT</span>Backtests</a>
+      <a class="nav-item {{ 'active' if active == 'system' }}" href="/system"><span>SY</span>System</a>
+    </nav>
+    <div class="sidebar-foot">
+      <span class="status-dot"></span> Read-only fixture
+      <small>Live execution unavailable</small>
+    </div>
+  </aside>
+  <div class="shell">
+    <header class="topbar">
+      <button class="menu-button" type="button" aria-label="Toggle navigation" data-menu>Menu</button>
+      <div class="top-meta">
+        <span class="badge badge-demo">DEMO</span>
+        <span class="meta-item"><small>Dataset</small>{{ view.context.dataset_version }}</span>
+        <span class="badge badge-warning">PIT incomplete</span>
+        <span class="meta-item hide-narrow"><small>Artifact update</small>{{ view.context.last_artifact_update.strftime('%Y-%m-%d %H:%M UTC') }}</span>
+      </div>
+      <button class="theme-button" type="button" data-theme-toggle aria-label="Toggle color theme">Theme</button>
+    </header>
+    <div class="safety-banner">{{ view.context.banner }}</div>
+    <section class="selector-bar" aria-label="Global fixture selectors">
+      <label>Universe
+        <select disabled title="Demo selector is fixed">
+          {% for universe in view.context.universes %}<option {{ 'selected' if universe == view.context.selected_universe }}>{{ universe }}</option>{% endfor %}
+        </select>
+      </label>
+      <label>Date range
+        <select disabled><option>{{ view.context.selected_date_range }}</option></select>
+      </label>
+      <span class="fixture-chip">Synthetic fixture · seed 20240918</span>
+    </section>
+    <main class="content">
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+  <dialog class="issue-dialog" data-issue-dialog>
+    <button class="dialog-close" data-dialog-close aria-label="Close">Close</button>
+    <div data-dialog-content></div>
+  </dialog>
+</body>
+</html>

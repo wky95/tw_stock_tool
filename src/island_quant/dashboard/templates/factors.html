@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Factors · Island Quant{% endblock %}
+{% block content %}
+<div class="page-heading"><div><p class="eyebrow">Baseline inventory</p><h1>Factors</h1><p>14 versioned OHLCV research factors. Synthetic · exploratory · gross before costs.</p></div><span class="badge badge-warning">PIT incomplete</span></div>
+<div class="warning-callout">Incomplete PIT reference data — metrics cannot be used as production evidence.</div>
+<section class="panel"><div class="panel-head"><h2>Factor inventory</h2><label>Category <select data-factor-filter><option value="">All</option>{% for category in view.categories %}<option>{{ category }}</option>{% endfor %}</select></label></div>
+<div class="table-wrap"><table class="data-table sortable"><thead><tr><th>Factor</th><th>Version</th><th>Category</th><th>Lookback</th><th>Coverage</th><th>Mean IC</th><th>Rank IC</th><th>ICIR</th><th>Turnover</th><th>Direction</th><th>Status</th></tr></thead><tbody>
+{% for factor in view.items %}<tr data-factor-row data-category="{{ factor.category }}"><td><a href="/factors/{{ factor.factor_id }}">{{ factor.name }}</a><small>{{ factor.factor_id }}</small></td><td>{{ factor.version }}</td><td>{{ factor.category }}</td><td>{{ factor.lookback }}</td><td>{{ '%.1f%%'|format(factor.coverage*100) }}</td><td class="{{ 'metric-positive' if factor.mean_ic >= 0 else 'metric-negative' }}">{{ '%.4f'|format(factor.mean_ic) }}</td><td>{{ '%.4f'|format(factor.rank_ic) }}</td><td>{{ 'N/A' if factor.icir is none else '%.3f'|format(factor.icir) }}</td><td>{{ '%.1f%%'|format(factor.turnover*100) }}</td><td>{{ factor.direction }}</td><td><span class="status status-exploratory">{{ factor.status }}</span></td></tr>{% endfor %}
+</tbody></table></div></section>
+{% endblock %}

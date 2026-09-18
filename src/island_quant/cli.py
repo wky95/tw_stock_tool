@@ -99,6 +99,11 @@ def build_parser() -> argparse.ArgumentParser:
     card = subparsers.add_parser("generate-model-card")
     card.add_argument("--experiment-artifact-version", required=True)
     card.add_argument("--output", type=Path, required=True)
+    dashboard = subparsers.add_parser("dashboard", help="run the read-only research dashboard")
+    dashboard.add_argument("--demo", action="store_true", help="use deterministic synthetic data")
+    dashboard.add_argument("--host", default="127.0.0.1")
+    dashboard.add_argument("--port", type=int, default=8765)
+    dashboard.add_argument("--reload", action="store_true")
     return parser
 
 
@@ -136,6 +141,8 @@ def main(argv: list[str] | None = None) -> int:
         return _inspect_experiment(args, settings)
     elif args.command == "generate-model-card":
         return _generate_model_card(args, settings)
+    elif args.command == "dashboard":
+        return _dashboard(args)
     return 0
 
 
@@ -763,6 +770,30 @@ def _generate_model_card(args: argparse.Namespace, settings: AppSettings) -> int
             },
             sort_keys=True,
         )
+    )
+    return 0
+
+
+def _dashboard(args: argparse.Namespace) -> int:
+    if not args.demo:
+        print("configuration error: dashboard currently requires --demo", file=sys.stderr)
+        return 2
+    if not 1 <= args.port <= 65535:
+        print("configuration error: dashboard port must be between 1 and 65535", file=sys.stderr)
+        return 2
+    import uvicorn
+
+    print(
+        f"Island Quant demo dashboard: http://{args.host}:{args.port}\n"
+        "DEMO / EXPLORATORY — NOT FOR LIVE TRADING\n"
+        "Press Ctrl+C to stop."
+    )
+    uvicorn.run(
+        "island_quant.dashboard.app:app",
+        host=args.host,
+        port=args.port,
+        reload=args.reload,
+        access_log=True,
     )
     return 0
 

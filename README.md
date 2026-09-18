@@ -1,6 +1,6 @@
 # Island Quant（島嶼量化）
 
-個人使用、以資金安全與可重現性為優先的台股量化研究與交易系統。專案目前完成 **Phase 0**、已提交的 **Phase 1 Slice 1/2**，以及待審核、未提交的 **Slice 3：point-in-time features 與 factor research**；ML、可信成本後回測、paper broker 與 live broker 尚未由新架構實作。
+個人使用、以資金安全與可重現性為優先的台股量化研究與交易系統。專案目前完成 Phase 0 與 Phase 1 的 point-in-time data、labels、factors 及 leakage-safe ML baseline。可信成本後回測、paper broker 與 live broker 尚未實作。
 
 > 這是工程與研究工具，不保證獲利，也不構成投資建議。Live trading 預設且目前實際不可用。
 
@@ -34,12 +34,56 @@ Phase 1 Slice 2 已提供：
 - Canonical market sessions 與 missing-observation classification。
 - 五類 gross forward-return labels，以及 listing/delisting、停牌與 no-lookahead guards。
 
-Phase 1 Slice 3 待審核內容：
+Phase 1 Slice 3 已提供：
 
 - Versioned feature contract/registry 與 14 個傳統 OHLCV factors。
 - Strict PIT rolling engine、preprocessing 與 reproducible materialization。
 - Daily IC、quantile returns、turnover、IC decay 與 breakdown evaluator。
 - Exploratory completeness gate，以及要求 pinned versions 的研究 CLI。
+
+Phase 1 Slice 4 已提供：
+
+- Exact-time supervised dataset 與 deterministic lineage manifest。
+- Expanding／rolling walk-forward、label-interval purging、trading-session embargo。
+- Fold-local preprocessing、Dummy／Linear／Ridge／Elastic Net baseline。
+- Immutable OOS prediction ledger、block bootstrap、Candidate model artifact 與 model card。
+
+## 本機 Research Dashboard
+
+Dashboard 是可操作的唯讀 UI 原型，只讀取固定的 synthetic fixture，不會讀取個人 production artifact、不連接券商，也沒有下單、模型 promotion 或 live-control endpoint。
+
+安裝後啟動：
+
+```bash
+source .venv/bin/activate
+island-quant dashboard --demo
+```
+
+預設只監聽 `127.0.0.1:8765`。瀏覽：
+
+- Dashboard：http://127.0.0.1:8765
+- OpenAPI：http://127.0.0.1:8765/docs
+- Health：http://127.0.0.1:8765/health
+
+按 `Ctrl+C` 停止服務。需要開發時自動重載可使用：
+
+```bash
+island-quant dashboard --demo --reload
+```
+
+Docker 啟動時，容器內需顯式監聽 `0.0.0.0`，但 host port 仍限定在 localhost：
+
+```bash
+docker build -t island-quant:dashboard .
+docker run --rm -p 127.0.0.1:8765:8765 \
+  island-quant:dashboard dashboard --demo --host 0.0.0.0
+```
+
+Demo fixture 固定 seed `20240918`，包含 15 檔虛構 instrument、90 sessions、14 個 baseline factors、3 個 ML experiments 和數筆刻意建立的品質問題。所有頁面固定顯示 `DEMO / EXPLORATORY — NOT FOR LIVE TRADING`；完美 IC 及信賴區間僅是工程 fixture，沒有統計或獲利意義。
+
+安全限制：服務預設 localhost、所有 dashboard API 都是 GET、live trading 永遠為 false、broker 永遠未設定，且 UI 不顯示 secrets、credentials、home directory 或敏感絕對路徑。
+
+已知測試技術債：目前 FastAPI／Starlette 的 `TestClient` 會由上游套件發出一則 httpx 相容介面與一則 AnyIO alias deprecation warning。測試功能正常；為避免只為消除 warning 而進行大型 dependency upgrade，暫時保留並等待上游相容版本後再處理。
 
 ## 安裝與驗證
 
@@ -82,6 +126,7 @@ ISLAND_QUANT__TRADING__INITIAL_CASH=2500000 island-quant show-config
 - [ADR 0004：Point-in-time Universe](docs/adr/0004-point-in-time-universe.md)
 - [ADR 0005：公司行動、價格視圖、snapshot 與 labels](docs/adr/0005-corporate-actions-price-views-and-labels.md)
 - [ADR 0006：Point-in-time features 與 factor research](docs/adr/0006-point-in-time-features-and-factor-research.md)
+- [ADR 0007：Leakage-safe ML baselines](docs/adr/0007-leakage-safe-ml-baselines.md)
 
 ## 設定安全原則
 

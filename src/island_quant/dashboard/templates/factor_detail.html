@@ -1,0 +1,16 @@
+{% extends "base.html" %}{% from "macros.html" import chart %}
+{% block title %}{{ view.summary.name }} · Island Quant{% endblock %}
+{% block content %}
+<div class="breadcrumb"><a href="/factors">Factors</a><span>/</span>{{ view.summary.name }}</div>
+<div class="page-heading"><div><p class="eyebrow">{{ view.summary.category }} · {{ view.summary.version }}</p><h1>{{ view.summary.name }}</h1><p>{{ view.fixture_label }}</p></div><span class="status status-exploratory">Exploratory</span></div>
+<div class="warning-callout">{{ view.warning }}</div>
+<section class="detail-grid"><article class="panel span-2"><div class="panel-head"><h2>Factor contract</h2><span class="mono">{{ view.summary.factor_id }}</span></div><dl class="definition-grid"><div><dt>Definition</dt><dd>{{ view.mathematical_definition }}</dd></div><div><dt>Required columns</dt><dd>{{ view.required_columns|join(', ') }}</dd></div><div><dt>Price view</dt><dd>{{ view.price_view }}</dd></div><div><dt>Lookback / minimum</dt><dd>{{ view.summary.lookback }} / {{ view.minimum_observations }}</dd></div><div><dt>Missing policy</dt><dd>{{ view.missing_policy }}</dd></div><div><dt>Normalization</dt><dd>{{ view.normalization }}</dd></div><div><dt>Availability</dt><dd>{{ view.availability_policy }}</dd></div><div><dt>Artifacts</dt><dd class="mono">{{ view.dataset_version }}<br>{{ view.feature_artifact_version }}</dd></div></dl></article>
+<article class="panel"><div class="panel-head"><h2>Daily Rank IC</h2><span>Synthetic</span></div>{{ chart(view.daily_ic) }}</article>
+<article class="panel"><div class="panel-head"><h2>IC decay</h2><span>Horizon</span></div>{{ chart(view.ic_decay, 'bar') }}</article>
+<article class="panel"><div class="panel-head"><h2>Quantile return</h2><span>Gross</span></div>{{ chart(view.quantile_returns, 'bar') }}</article>
+<article class="panel"><div class="panel-head"><h2>Coverage</h2><span>% eligible</span></div>{{ chart(view.coverage_series) }}</article>
+<article class="panel"><div class="panel-head"><h2>Distribution</h2><span>Fixture values</span></div>{{ chart(view.distribution, 'bar') }}</article>
+<article class="panel"><div class="panel-head"><h2>Year / market breakdown</h2></div><div class="table-wrap"><table class="data-table"><thead><tr><th>Segment</th><th>Rank IC</th><th>Coverage</th></tr></thead><tbody>{% for row in view.breakdown %}<tr><td>{{ row.segment }}</td><td>{{ row.rank_ic }}</td><td>{{ row.coverage }}</td></tr>{% endfor %}</tbody></table></div></article>
+</section>
+<section class="panel"><h2>Known limitations</h2><ul class="limitations">{% for item in view.known_limitations %}<li>{{ item }}</li>{% endfor %}</ul></section>
+{% endblock %}
