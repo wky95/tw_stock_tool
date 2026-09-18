@@ -1,0 +1,52 @@
+{
+  "fixture": "five-symbol-two-session-offline-v1",
+  "metadata": {
+    "title_prefix": "EXPLORATORY — INCOMPLETE POINT-IN-TIME DATA",
+    "research_quality_classification": "exploratory",
+    "is_research_complete": false,
+    "unknown_market_count": 0,
+    "provisional_listing_date_count": 5,
+    "unsupported_corporate_action_count": 1,
+    "missing_suspension_status_count": 3,
+    "dataset_version": "fixture-prices-v1",
+    "feature_set_version": "baseline-v1",
+    "label_version": "labels-v1",
+    "availability_policy_version": "tw-daily-v1",
+    "tested_factor_inventory": [
+      "momentum_5@1.0.0"
+    ],
+    "direction": "long_high",
+    "return_semantics": "gross_before_costs",
+    "significance_method": "not_reported"
+  },
+  "summary": {
+    "coverage": 1.0,
+    "missing_rate": 0.0,
+    "pearson_ic_mean": 1.0,
+    "spearman_ic_mean": 0.9999999999999998,
+    "ic_standard_deviation": 0.0,
+    "icir": null,
+    "ic_positive_ratio": 1.0,
+    "top_minus_bottom_mean": 0.04,
+    "mean_membership_turnover": 0.0,
+    "valid_observation_count": 10,
+    "total_feature_observation_count": 10
+  },
+  "daily_ic": [
+    {
+      "decision_date": "2024-01-02",
+      "sample_count": 5,
+      "pearson_ic": 1.0,
+      "spearman_ic": 0.9999999999999998,
+      "valid": true
+    },
+    {
+      "decision_date": "2024-01-03",
+      "sample_count": 5,
+      "pearson_ic": 1.0,
+      "spearman_ic": 0.9999999999999998,
+      "valid": true
+    }
+  ],
+  "notice": "Synthetic fixture result for pipeline verification only; it is not evidence of profitability."
+}

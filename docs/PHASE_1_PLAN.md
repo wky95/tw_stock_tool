@@ -43,12 +43,13 @@ Canonical volume unit 為股數（`shares`）；provider raw value/unit 保留�
 
 精確公式與限制見 ADR 0005。本 Slice 不含 feature 搜尋或 ML。
 
-## Slice 3：Features 與 point-in-time research matrix（建議下一輪）
+## Slice 3：Features 與 factor research（已實作，待審核）
 
-- Versioned feature registry 與 momentum/reversal/volatility/liquidity baseline。
-- 每個 feature 保存 input versions、lookback、available-at 與 universe policy lineage。
-- Cross-sectional transforms 僅在 decision-date eligible universe 內 fit/transform。
-- 建立可供後續 walk-forward 使用、但尚不訓練模型的 pinned research matrix。
+- Versioned feature registry、14 個 OHLCV baseline factors 與 deterministic feature-set manifest。
+- PIT rolling engine、composable preprocessing、candidate materialization 與 row lineage inspect。
+- Daily cross-sectional IC、quantile portfolio、turnover、IC decay、year/market breakdown。
+- Exploratory/validated completeness gate 與完全 pinned CLI。
+- 尚未訓練任何 ML model。
 
 ## Slice 4：Walk-forward research 與 baseline model
 
