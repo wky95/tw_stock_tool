@@ -1,6 +1,6 @@
 # Island Quant（島嶼量化）
 
-個人使用、以資金安全與可重現性為優先的台股量化研究與交易系統。專案目前完成 Phase 0、Phase 1、事件驅動成本後回測，以及 exact-version real exploratory pipeline。Paper broker 與 live broker 尚未實作。
+個人使用、以資金安全與可重現性為優先的台股量化研究與交易系統。專案目前完成 Phase 0、Phase 1、事件驅動成本後回測、exact-version real exploratory pipeline 與 deterministic paper OMS。Live broker 尚未實作。
 
 > 這是工程與研究工具，不保證獲利，也不構成投資建議。Live trading 預設且目前實際不可用。
 
@@ -55,6 +55,20 @@ Phase 2 Slice 3 已提供 exact-version real exploratory pipeline：
 - Checkpoint/resume、idempotent atomic stage publishing 與資源上限。
 - Existing local cache → features／labels／expanding baseline／targets → event-driven backtest。
 - Machine-readable PIT coverage/promotion blockers 與 read-only Pipeline Dashboard mode。
+
+Phase 3 paper OMS 提供 SQLite ACID state/event journal、transactional outbox、optimistic
+concurrency、restart recovery、deterministic pinned-market paper broker 與 fail-closed
+reconciliation。所有命令必須顯式 `--paper`，不接受 broker credentials，也不存在 live flag：
+
+```bash
+island-quant paper-init --paper
+island-quant paper-status --paper
+island-quant paper-orders --paper
+island-quant paper-reconcile --paper
+```
+
+`paper-cancel-all` 與 `paper-recover` 預設只顯示 dry-run；實際變更必須加入 `--confirm`。
+Paper fill 是工程模擬，不代表真實券商成交或投資績效。
 
 執行前可先 dry-run；超過設定安全上限必須明確加入 `--confirm-large-run`：
 
@@ -171,6 +185,7 @@ ISLAND_QUANT__TRADING__INITIAL_CASH=2500000 island-quant show-config
 - [ADR 0006：Point-in-time features 與 factor research](docs/adr/0006-point-in-time-features-and-factor-research.md)
 - [ADR 0007：Leakage-safe ML baselines](docs/adr/0007-leakage-safe-ml-baselines.md)
 - [ADR 0010：Exact-version real exploratory pipeline](docs/adr/0010-exact-version-exploratory-pipeline.md)
+- [ADR 0011：Persistent paper OMS](docs/adr/0011-persistent-paper-oms.md)
 
 ## 設定安全原則
 

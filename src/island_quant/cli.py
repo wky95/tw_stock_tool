@@ -149,6 +149,9 @@ def build_parser() -> argparse.ArgumentParser:
     dashboard.add_argument("--host", default="127.0.0.1")
     dashboard.add_argument("--port", type=int, default=8765)
     dashboard.add_argument("--reload", action="store_true")
+    from island_quant.oms.cli import add_paper_parsers
+
+    add_paper_parsers(subparsers)
     return parser
 
 
@@ -200,6 +203,10 @@ def main(argv: list[str] | None = None) -> int:
         return _generate_backtest_report(args, settings)
     elif args.command == "dashboard":
         return _dashboard(args, settings)
+    elif args.command.startswith("paper-"):
+        from island_quant.oms.cli import run_paper_command
+
+        return run_paper_command(args, settings)
     return 0
 
 
@@ -1074,9 +1081,7 @@ def _dashboard(args: argparse.Namespace, settings: AppSettings) -> int:
             else None
         )
         application = create_app(
-            DashboardQueryService(
-                pipeline_query=pipeline_adapter, backtest_query=backtest_adapter
-            )
+            DashboardQueryService(pipeline_query=pipeline_adapter, backtest_query=backtest_adapter)
         )
         mode = f"pipeline {args.pipeline_run_version}"
     else:

@@ -44,6 +44,11 @@ trading:
   maximum_net_exposure: "1.0"
   maximum_position_weight: "0.10"
 
+paper:
+  oms_database_path: state/paper/oms.sqlite
+  market_fixture_path: config/paper_market.json
+  live_trading_enabled: false
+
 logging:
   level: INFO
   json: true

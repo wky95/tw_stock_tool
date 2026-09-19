@@ -55,9 +55,7 @@ class UniverseSettings(BaseModel):
     policy_version: str = "tw-equity-v1"
     minimum_listing_days: int = Field(default=60, ge=0)
     trailing_median_window: int = Field(default=20, gt=0)
-    minimum_trailing_median_traded_value: Decimal = Field(
-        default=Decimal("5000000"), ge=0
-    )
+    minimum_trailing_median_traded_value: Decimal = Field(default=Decimal("5000000"), ge=0)
     minimum_lookback_observations: int = Field(default=20, gt=0)
 
 
@@ -109,6 +107,20 @@ class LoggingSettings(BaseModel):
     json_output: bool = Field(default=True, alias="json")
 
 
+class PaperSettings(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    oms_database_path: Path = Path("state/paper/oms.sqlite")
+    market_fixture_path: Path = Path("config/paper_market.json")
+    live_trading_enabled: bool = False
+
+    @model_validator(mode="after")
+    def forbid_live(self) -> PaperSettings:
+        if self.live_trading_enabled:
+            raise ValueError("paper service cannot enable live trading")
+        return self
+
+
 class AppSettings(BaseSettings):
     """Root configuration. Unknown keys fail fast to catch unsafe typos."""
 
@@ -123,6 +135,7 @@ class AppSettings(BaseSettings):
     availability: AvailabilitySettings = Field(default_factory=AvailabilitySettings)
     dataset_versions: DatasetVersionSettings = Field(default_factory=DatasetVersionSettings)
     trading: TradingSettings = Field(default_factory=TradingSettings)
+    paper: PaperSettings = Field(default_factory=PaperSettings)
     logging: LoggingSettings = Field(default_factory=LoggingSettings)
 
     @model_validator(mode="after")

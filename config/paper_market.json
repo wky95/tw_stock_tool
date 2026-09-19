@@ -1,0 +1,10 @@
+[
+  {
+    "instrument_id": "2330",
+    "event_time": "2025-01-02T09:00:00+08:00",
+    "reference_price": "1000",
+    "volume": 100000,
+    "suspended": false,
+    "limit_locked": false
+  }
+]
