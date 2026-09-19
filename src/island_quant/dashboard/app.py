@@ -48,7 +48,7 @@ def create_app(service: DashboardQueryService | None = None) -> FastAPI:
         from urllib.parse import unquote
 
         raw = request.scope.get("raw_path", b"").decode("ascii", errors="ignore")
-        for prefix in ("/api/dashboard/backtests/", "/backtests/"):
+        for prefix in ("/api/dashboard/backtests/", "/backtests/", "/api/dashboard/pipelines/", "/pipelines/"):
             if raw.startswith(prefix):
                 encoded_version = raw[len(prefix) :].split("/", 1)[0]
                 if not VERSION_PATTERN.fullmatch(unquote(encoded_version)):
@@ -66,7 +66,7 @@ def create_app(service: DashboardQueryService | None = None) -> FastAPI:
         )
 
     def demo_only() -> None:
-        if query.artifact_mode:
+        if query.artifact_mode or query.pipeline_mode:
             raise HTTPException(
                 status_code=404,
                 detail="Demo fixture endpoint is unavailable in artifact mode",
@@ -114,8 +114,21 @@ def create_app(service: DashboardQueryService | None = None) -> FastAPI:
 
     @application.get("/backtests", response_class=HTMLResponse, include_in_schema=False)
     def backtests_page(request: Request) -> HTMLResponse:
+        if query.pipeline_mode and query.backtest_query is None:
+            raise HTTPException(status_code=404, detail="Pipeline has no backtest artifact")
         template = "backtest_artifacts.html" if query.artifact_mode else "backtests.html"
+        if query.pipeline_mode:
+            template = "backtest_artifacts.html"
         return page(request, template, query.backtests(), "backtests")
+
+    @application.get("/pipelines/{version}", response_class=HTMLResponse, include_in_schema=False)
+    def pipeline_page(
+        request: Request,
+        version: Annotated[str, PathParameter(pattern=r"^[0-9a-f]{64}$")],
+    ) -> HTMLResponse:
+        if query.pipeline_query is None or version != query.pipeline_query.version:
+            raise HTTPException(status_code=404, detail="Unknown pipeline artifact")
+        return page(request, "pipeline_status.html", query.pipeline(), "pipeline")
 
     @application.get(
         "/backtests/{version}", response_class=HTMLResponse, include_in_schema=False
@@ -210,12 +223,22 @@ def create_app(service: DashboardQueryService | None = None) -> FastAPI:
     @application.get("/api/dashboard/backtests")
     def backtests_api() -> dict[str, object]:
         if query.backtest_query is None:
+            if query.pipeline_mode:
+                raise HTTPException(status_code=404, detail="Pipeline has no backtest artifact")
             return {"mode": "demo", "artifact_version": None, "items": []}
         return {
-            "mode": "artifact",
+            "mode": "pipeline" if query.pipeline_mode else "artifact",
             "artifact_version": query.backtest_query.version,
             "items": query.backtest_query.summaries(),
         }
+
+    @application.get("/api/dashboard/pipelines/{version}")
+    def pipeline_api(
+        version: Annotated[str, PathParameter(pattern=r"^[0-9a-f]{64}$")],
+    ) -> object:
+        if query.pipeline_query is None or version != query.pipeline_query.version:
+            raise HTTPException(status_code=404, detail="Unknown pipeline artifact")
+        return query.pipeline_query.status()
 
     @application.get("/api/dashboard/", include_in_schema=False)
     def rejected_normalized_artifact_path() -> JSONResponse:
@@ -227,6 +250,8 @@ def create_app(service: DashboardQueryService | None = None) -> FastAPI:
     def required(value: object | None) -> object:
         if value is None:
             raise HTTPException(status_code=404, detail="Unknown backtest artifact")
+        if query.pipeline_mode and isinstance(value, dict):
+            return {**value, "mode": "pipeline"}
         return value
 
     @application.get("/api/dashboard/backtests/{version}")
@@ -269,9 +294,14 @@ def create_app(service: DashboardQueryService | None = None) -> FastAPI:
 
     @application.get("/health", response_model=HealthResponse)
     def health() -> HealthResponse:
-        return HealthResponse(
-            mode="artifact-read-only" if query.artifact_mode else "demo-read-only"
+        mode: Literal[
+            "demo-read-only", "artifact-read-only", "pipeline-read-only"
+        ] = (
+            "pipeline-read-only"
+            if query.pipeline_mode
+            else ("artifact-read-only" if query.artifact_mode else "demo-read-only")
         )
+        return HealthResponse(mode=mode)
 
     return application
 

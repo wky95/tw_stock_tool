@@ -6,12 +6,13 @@ import hashlib
 import json
 from dataclasses import dataclass
 from datetime import date, datetime
-from decimal import Decimal
+from decimal import ROUND_HALF_EVEN, Decimal
 
 from island_quant.backtest.policies import MarkPolicy, SettlementPolicy
 from island_quant.domain.models import Fill, Instrument, Side
 
 ZERO = Decimal("0")
+COST_ALLOCATION_QUANTUM = Decimal("0.00000001")
 
 
 @dataclass(frozen=True, slots=True)
@@ -253,7 +254,13 @@ class PortfolioLedger:
             if state is None or fill.quantity > state.quantity:
                 raise AccountingInvariantError("sell fill would create a short position")
             old_quantity = state.quantity
-            cost_basis = state.book_cost * fill.quantity / old_quantity
+            cost_basis = (
+                state.book_cost
+                if fill.quantity == old_quantity
+                else (state.book_cost * fill.quantity / old_quantity).quantize(
+                    COST_ALLOCATION_QUANTUM, rounding=ROUND_HALF_EVEN
+                )
+            )
             net = gross - fill.fee - fill.tax
             state.quantity -= fill.quantity
             state.book_cost -= cost_basis
@@ -557,8 +564,7 @@ class PortfolioLedger:
             raise AccountingInvariantError("fees do not reconcile to fill journal")
         derived_realized = sum(
             (
-                Decimal(transaction.metadata["price"])
-                * Decimal(transaction.metadata["quantity"])
+                Decimal(transaction.metadata["price"]) * Decimal(transaction.metadata["quantity"])
                 - Decimal(transaction.metadata["cost_basis"])
                 - Decimal(transaction.metadata["fee"])
                 - Decimal(transaction.metadata["tax"])

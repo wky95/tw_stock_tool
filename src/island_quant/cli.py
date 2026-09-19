@@ -7,6 +7,7 @@ import hashlib
 import json
 import os
 import sys
+from dataclasses import asdict
 from datetime import UTC, datetime
 from importlib.metadata import version
 from pathlib import Path
@@ -100,6 +101,12 @@ def build_parser() -> argparse.ArgumentParser:
     card = subparsers.add_parser("generate-model-card")
     card.add_argument("--experiment-artifact-version", required=True)
     card.add_argument("--output", type=Path, required=True)
+    pipeline = subparsers.add_parser("run-research-pipeline")
+    pipeline.add_argument("--pipeline-config", type=Path, required=True)
+    pipeline.add_argument("--dry-run", action="store_true")
+    pipeline.add_argument("--confirm-large-run", action="store_true")
+    inspect_pipeline = subparsers.add_parser("inspect-pipeline-run")
+    inspect_pipeline.add_argument("--run-version", required=True)
     run_backtest = subparsers.add_parser("run-backtest")
     run_backtest.add_argument("--demo", action="store_true")
     run_backtest.add_argument("--dry-run", action="store_true")
@@ -135,6 +142,7 @@ def build_parser() -> argparse.ArgumentParser:
     dashboard = subparsers.add_parser("dashboard", help="run the read-only research dashboard")
     dashboard.add_argument("--demo", action="store_true", help="use deterministic synthetic data")
     dashboard.add_argument("--artifact-version")
+    dashboard.add_argument("--pipeline-run-version")
     dashboard.add_argument(
         "--artifact-namespace", choices=("candidate", "demo"), default="candidate"
     )
@@ -178,6 +186,10 @@ def main(argv: list[str] | None = None) -> int:
         return _inspect_experiment(args, settings)
     elif args.command == "generate-model-card":
         return _generate_model_card(args, settings)
+    elif args.command == "run-research-pipeline":
+        return _run_research_pipeline(args)
+    elif args.command == "inspect-pipeline-run":
+        return _inspect_pipeline_run(args, settings)
     elif args.command == "run-backtest":
         return _run_backtest(args, settings)
     elif args.command == "inspect-backtest":
@@ -271,9 +283,7 @@ def _add_ml_experiment_arguments(parser: argparse.ArgumentParser) -> None:
 def _ingest_data(args: argparse.Namespace, settings: AppSettings) -> int:
     provider_name = args.provider or settings.data.provider
     symbols = (
-        [item.strip() for item in args.symbols.split(",") if item.strip()]
-        if args.symbols
-        else None
+        [item.strip() for item in args.symbols.split(",") if item.strip()] if args.symbols else None
     )
     plan = {
         "provider": provider_name,
@@ -432,9 +442,7 @@ def _build_features(args: argparse.Namespace, settings: AppSettings) -> int:
     prices = store.read_dataset_version("canonical_daily_prices", args.dataset_version)
     universe = store.read_dataset_version("universe_membership", args.universe_version)
     calendar_frame = store.read_dataset_version("trading_calendar", args.calendar_version)
-    metadata_frame = store.read_dataset_version(
-        "universe_metadata", args.universe_metadata_version
-    )
+    metadata_frame = store.read_dataset_version("universe_metadata", args.universe_metadata_version)
     prices, universe = _filter_feature_inputs(prices, universe, args)
     calendar = _canonical_calendar(calendar_frame)
     registry = baseline_registry(args.dataset_version)
@@ -528,9 +536,7 @@ def _completeness(
         universe_complete=bool(row["is_research_complete"]),
         unknown_market_count=int(row["unknown_market_count"]),
         provisional_listing_date_count=int(row["provisional_listing_date_count"]),
-        unsupported_corporate_action_count=int(
-            row.get("unsupported_corporate_action_count", 1)
-        ),
+        unsupported_corporate_action_count=int(row.get("unsupported_corporate_action_count", 1)),
         missing_suspension_status_count=int(row.get("missing_suspension_status_count", 1)),
         dataset_version=dataset_version,
         feature_set_version=feature_set_version,
@@ -571,15 +577,10 @@ def _evaluate_factor(args: argparse.Namespace, settings: AppSettings) -> int:
     features = store.read_dataset_version(
         f"features__{args.feature_set_version}", args.feature_dataset_version
     ).filter(pl.col("feature_name") == args.feature)
-    labels = store.read_dataset_version(
-        "forward_return_labels", args.label_dataset_version
-    ).filter(
-        (pl.col("label_version") == args.label_version)
-        & (pl.col("label_kind") == args.label_kind)
+    labels = store.read_dataset_version("forward_return_labels", args.label_dataset_version).filter(
+        (pl.col("label_version") == args.label_version) & (pl.col("label_kind") == args.label_kind)
     )
-    metadata = store.read_dataset_version(
-        "universe_metadata", args.universe_metadata_version
-    )
+    metadata = store.read_dataset_version("universe_metadata", args.universe_metadata_version)
     completeness = _completeness(
         metadata,
         dataset_version=args.feature_dataset_version,
@@ -754,9 +755,7 @@ def _run_ml_experiment(args: argparse.Namespace, settings: AppSettings) -> int:
     splits = splitter.split(frame)
     if not splits.folds:
         raise ValueError("walk-forward configuration produced no folds")
-    metadata = store.read_dataset_version(
-        "universe_metadata", args.universe_metadata_version
-    )
+    metadata = store.read_dataset_version("universe_metadata", args.universe_metadata_version)
     completeness = _completeness(
         metadata,
         dataset_version=manifest.dataset_version,
@@ -869,9 +868,7 @@ def _run_backtest(args: argparse.Namespace, settings: AppSettings) -> int:
             )
         )
         return 0
-    artifact = build_demo_backtest_artifact(
-        settings.research.artifact_root / "demo", dry_run=False
-    )
+    artifact = build_demo_backtest_artifact(settings.research.artifact_root / "demo", dry_run=False)
     print(
         json.dumps(
             {
@@ -977,16 +974,61 @@ def _generate_backtest_report(args: argparse.Namespace, settings: AppSettings) -
 
 def _escape_markdown(value: str) -> str:
     escaped = (
-        f"\\{character}" if character in r"\\`*_{}[]<>#|" else character
-        for character in value
+        f"\\{character}" if character in r"\\`*_{}[]<>#|" else character for character in value
     )
     return "".join(escaped)
 
 
+def _run_research_pipeline(args: argparse.Namespace) -> int:
+    from island_quant.pipeline.exploratory import (
+        ExploratoryPipelineConfig,
+        RealCacheExploratoryPipeline,
+    )
+
+    try:
+        pipeline = RealCacheExploratoryPipeline(
+            ExploratoryPipelineConfig.load(args.pipeline_config)
+        )
+        plan = pipeline.plan(confirm_large_run=args.confirm_large_run)
+        if args.dry_run:
+            print(json.dumps({"dry_run": True, "plan": asdict(plan)}, default=str, sort_keys=True))
+            return 0
+        result = pipeline.run(confirm_large_run=args.confirm_large_run)
+    except (OSError, ValueError, RuntimeError, yaml.YAMLError) as exc:
+        print(f"pipeline error: {exc}", file=sys.stderr)
+        return 2
+    print(json.dumps(asdict(result), default=str, sort_keys=True))
+    return 0 if result.status == "completed" else 2
+
+
+def _inspect_pipeline_run(args: argparse.Namespace, settings: AppSettings) -> int:
+    from island_quant.pipeline.orchestration import CheckpointedPipeline
+
+    try:
+        payload = CheckpointedPipeline(settings.research.artifact_root, Path("state")).inspect(
+            args.run_version
+        )
+    except ValueError:
+        print("pipeline error: invalid run version format", file=sys.stderr)
+        return 2
+    except FileNotFoundError:
+        print("pipeline error: run not found", file=sys.stderr)
+        return 2
+    except RuntimeError:
+        print("pipeline error: run integrity verification failed", file=sys.stderr)
+        return 2
+    print(json.dumps(payload, default=str, sort_keys=True))
+    return 0
+
+
 def _dashboard(args: argparse.Namespace, settings: AppSettings) -> int:
-    if args.demo == bool(args.artifact_version):
+    selected_modes = sum(
+        (bool(args.demo), bool(args.artifact_version), bool(args.pipeline_run_version))
+    )
+    if selected_modes != 1:
         print(
-            "configuration error: dashboard requires --demo or --artifact-version "
+            "configuration error: dashboard requires --demo, --artifact-version, or "
+            "--pipeline-run-version "
             "(exactly one)",
             file=sys.stderr,
         )
@@ -999,6 +1041,44 @@ def _dashboard(args: argparse.Namespace, settings: AppSettings) -> int:
     if args.demo:
         application: Any = "island_quant.dashboard.app:app"
         mode = "demo"
+    elif args.pipeline_run_version:
+        if args.reload:
+            print("configuration error: pipeline dashboard forbids --reload", file=sys.stderr)
+            return 2
+        from island_quant.backtest.artifacts import BacktestArtifactStore
+        from island_quant.dashboard.app import create_app
+        from island_quant.dashboard.backtests import BacktestArtifactQuery
+        from island_quant.dashboard.pipelines import PipelineArtifactQuery
+        from island_quant.dashboard.service import DashboardQueryService
+
+        try:
+            pipeline_adapter = PipelineArtifactQuery(
+                settings.research.artifact_root, args.pipeline_run_version
+            )
+        except ValueError:
+            print("pipeline error: invalid run version format", file=sys.stderr)
+            return 2
+        except FileNotFoundError:
+            print("pipeline error: run not found", file=sys.stderr)
+            return 2
+        except RuntimeError:
+            print("pipeline error: run integrity verification failed", file=sys.stderr)
+            return 2
+        backtest_version = pipeline_adapter.status().get("backtest_artifact_version")
+        backtest_adapter = (
+            BacktestArtifactQuery(
+                BacktestArtifactStore(settings.research.artifact_root),
+                str(backtest_version),
+            )
+            if backtest_version
+            else None
+        )
+        application = create_app(
+            DashboardQueryService(
+                pipeline_query=pipeline_adapter, backtest_query=backtest_adapter
+            )
+        )
+        mode = f"pipeline {args.pipeline_run_version}"
     else:
         if args.reload:
             print("configuration error: artifact dashboard forbids --reload", file=sys.stderr)
@@ -1027,9 +1107,7 @@ def _dashboard(args: argparse.Namespace, settings: AppSettings) -> int:
         f"Island Quant {mode} dashboard: http://{args.host}:{args.port}\n"
         "READ ONLY / NOT FOR LIVE TRADING\nPress Ctrl+C to stop."
     )
-    uvicorn.run(
-        application, host=args.host, port=args.port, reload=args.reload, access_log=True
-    )
+    uvicorn.run(application, host=args.host, port=args.port, reload=args.reload, access_log=True)
     return 0
 
 

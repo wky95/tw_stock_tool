@@ -19,13 +19,16 @@
       <a class="nav-item {{ 'active' if active == 'factors' }}" href="/factors"><span>FX</span>Factors</a>
       <a class="nav-item {{ 'active' if active == 'experiments' }}" href="/experiments"><span>ML</span>ML Experiments</a>
       {% endif %}
+      {% if view.context.environment == 'PIPELINE' %}
+      <a class="nav-item {{ 'active' if active == 'pipeline' }}" href="/pipelines/{{ view.run_version }}"><span>PL</span>Pipeline</a>
+      {% endif %}
       <a class="nav-item {{ 'active' if active == 'backtests' }}" href="/backtests"><span>BT</span>Backtests</a>
       {% if view.context.environment == 'DEMO' %}
       <a class="nav-item {{ 'active' if active == 'system' }}" href="/system"><span>SY</span>System</a>
       {% endif %}
     </nav>
     <div class="sidebar-foot">
-      <span class="status-dot"></span> Read-only {{ 'fixture' if view.context.environment == 'DEMO' else 'artifact' }}
+      <span class="status-dot"></span> Read-only {{ 'fixture' if view.context.environment == 'DEMO' else view.context.environment.lower() }}
       <small>Live execution unavailable</small>
     </div>
   </aside>
@@ -50,7 +53,7 @@
       <label>Date range
         <select disabled><option>{{ view.context.selected_date_range }}</option></select>
       </label>
-      <span class="fixture-chip">{{ 'Synthetic fixture · seed 20240918' if view.context.environment == 'DEMO' else 'Exact-version artifact · read only' }}</span>
+      <span class="fixture-chip">{{ 'Synthetic fixture · seed 20240918' if view.context.environment == 'DEMO' else ('Real exploratory · exact version · read only' if view.context.environment == 'PIPELINE' else 'Exact-version artifact · read only') }}</span>
     </section>
     <main class="content">
       {% block content %}{% endblock %}

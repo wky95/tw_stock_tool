@@ -22,6 +22,7 @@ from island_quant.dashboard.models import (
     PaginatedFactors,
     SystemView,
 )
+from island_quant.dashboard.pipelines import PipelineArtifactQuery
 from island_quant.storage.provenance import CodeProvenance, capture_code_provenance
 
 
@@ -31,14 +32,41 @@ class DashboardQueryService:
         fixture: DemoDashboardFixture | None = None,
         provenance_provider: Callable[[], CodeProvenance] = capture_code_provenance,
         backtest_query: BacktestArtifactQuery | None = None,
+        pipeline_query: PipelineArtifactQuery | None = None,
     ) -> None:
         self.fixture = fixture or DemoDashboardFixture()
         self.provenance_provider = provenance_provider
         self.backtest_query = backtest_query
+        self.pipeline_query = pipeline_query
 
     @property
     def artifact_mode(self) -> bool:
-        return self.backtest_query is not None
+        return self.backtest_query is not None and self.pipeline_query is None
+
+    @property
+    def pipeline_mode(self) -> bool:
+        return self.pipeline_query is not None
+
+    def pipeline_context(self) -> DashboardContext:
+        if self.pipeline_query is None:
+            raise RuntimeError("pipeline mode is not configured")
+        status = self.pipeline_query.status()
+        coverage = status["coverage"]
+        return DashboardContext(
+            environment="PIPELINE",
+            banner="REAL EXPLORATORY / PIT INCOMPLETE / READ ONLY / NOT FOR LIVE TRADING",
+            dataset_version=self.pipeline_query.version[:12],
+            pit_completeness="incomplete",
+            last_artifact_update=self.fixture.context.last_artifact_update,
+            universes=("Pinned exploratory universe",),
+            selected_universe="Pinned exploratory universe",
+            selected_date_range=str(coverage["date_coverage"]),
+        )
+
+    def pipeline(self) -> dict[str, object]:
+        if self.pipeline_query is None:
+            raise RuntimeError("pipeline mode is not configured")
+        return {"context": self.pipeline_context(), **self.pipeline_query.status()}
 
     def backtest_context(self) -> DashboardContext:
         if self.backtest_query is None:
@@ -58,9 +86,7 @@ class DashboardQueryService:
             banner=" / ".join(banner_parts),
             dataset_version=str(summary["artifact_version"])[:12],
             pit_completeness=(
-                "validated"
-                if summary["completeness_status"] == "validated"
-                else "incomplete"
+                "validated" if summary["completeness_status"] == "validated" else "incomplete"
             ),
             last_artifact_update=datetime.fromisoformat(str(summary["created_time"])),
             universes=("Pinned artifact universe",),
@@ -70,9 +96,13 @@ class DashboardQueryService:
 
     def backtests(self) -> object:
         if self.backtest_query is None:
+            if self.pipeline_query is not None:
+                raise RuntimeError("pipeline run has no verified backtest artifact")
             return self.fixture.backtests()
         return {
-            "context": self.backtest_context(),
+            "context": (
+                self.pipeline_context() if self.pipeline_query else self.backtest_context()
+            ),
             "items": self.backtest_query.summaries(),
         }
 
@@ -82,7 +112,8 @@ class DashboardQueryService:
         detail = self.backtest_query.detail(version)
         if detail is None:
             return None
-        return {"context": self.backtest_context(), **detail}
+        context = self.pipeline_context() if self.pipeline_query else self.backtest_context()
+        return {"context": context, **detail}
 
     def overview(self) -> OverviewView:
         source = self.fixture

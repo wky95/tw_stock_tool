@@ -1,6 +1,6 @@
 # Island Quant（島嶼量化）
 
-個人使用、以資金安全與可重現性為優先的台股量化研究與交易系統。專案目前完成 Phase 0 與 Phase 1 的 point-in-time data、labels、factors 及 leakage-safe ML baseline。可信成本後回測、paper broker 與 live broker 尚未實作。
+個人使用、以資金安全與可重現性為優先的台股量化研究與交易系統。專案目前完成 Phase 0、Phase 1、事件驅動成本後回測，以及 exact-version real exploratory pipeline。Paper broker 與 live broker 尚未實作。
 
 > 這是工程與研究工具，不保證獲利，也不構成投資建議。Live trading 預設且目前實際不可用。
 
@@ -47,6 +47,29 @@ Phase 1 Slice 4 已提供：
 - Expanding／rolling walk-forward、label-interval purging、trading-session embargo。
 - Fold-local preprocessing、Dummy／Linear／Ridge／Elastic Net baseline。
 - Immutable OOS prediction ledger、block bootstrap、Candidate model artifact 與 model card。
+
+Phase 2 Slice 3 已提供 exact-version real exploratory pipeline：
+
+- Typed、checksum-verified、path-safe filesystem adapters，支援 bounded batch reads。
+- Strict selected-OOS prediction adapter 與完整 dataset/universe/model lineage。
+- Checkpoint/resume、idempotent atomic stage publishing 與資源上限。
+- Existing local cache → features／labels／expanding baseline／targets → event-driven backtest。
+- Machine-readable PIT coverage/promotion blockers 與 read-only Pipeline Dashboard mode。
+
+執行前可先 dry-run；超過設定安全上限必須明確加入 `--confirm-large-run`：
+
+```bash
+island-quant run-research-pipeline \
+  --pipeline-config config/exploratory_pipeline.yaml --dry-run
+island-quant run-research-pipeline \
+  --pipeline-config config/exploratory_pipeline.yaml
+island-quant inspect-pipeline-run --run-version <exact-version>
+island-quant dashboard --pipeline-run-version <exact-version>
+```
+
+此命令只讀既有 `data/cache/`，正式輸出與 checkpoint 依設定寫入 ignored runtime
+directories。結果固定標記 `REAL EXPLORATORY` 與
+`EXPLORATORY — INCOMPLETE POINT-IN-TIME REFERENCE DATA`，不得解讀為 alpha 或投資建議。
 
 ## 本機 Research Dashboard
 
@@ -147,6 +170,7 @@ ISLAND_QUANT__TRADING__INITIAL_CASH=2500000 island-quant show-config
 - [ADR 0005：公司行動、價格視圖、snapshot 與 labels](docs/adr/0005-corporate-actions-price-views-and-labels.md)
 - [ADR 0006：Point-in-time features 與 factor research](docs/adr/0006-point-in-time-features-and-factor-research.md)
 - [ADR 0007：Leakage-safe ML baselines](docs/adr/0007-leakage-safe-ml-baselines.md)
+- [ADR 0010：Exact-version real exploratory pipeline](docs/adr/0010-exact-version-exploratory-pipeline.md)
 
 ## 設定安全原則
 

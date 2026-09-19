@@ -90,8 +90,9 @@ Realized PnL and ending unrealized PnL are memo disclosures, not additional addi
 adding them beside price movement would double count. The same identity is checked by session.
 Gross price movement is reconstructed independently from ending marked position value, cumulative
 gross buy/sell cash flows, and measured slippage; it is not obtained by solving the identity for a
-residual. Known cash-dividend and integer-preserving stock-split events are accepted. Any unknown
-corporate-action type fails closed instead of entering a residual or ambiguous bucket.
+residual. Known cash-dividend events are accepted. Stock splits and other corporate-action economic
+effects remain unsupported by attribution and fail closed instead of entering a residual or
+ambiguous bucket; their accounting support does not imply complete economic attribution.
 The schema name `notional_allocated_attribution` allocates the reconciled portfolio result by
 executed notional only so the rows add up. It is not security-level economic attribution, does not
 represent a security's real price/dividend/cost contribution, and must not support security

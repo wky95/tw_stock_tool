@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Pipeline · Island Quant{% endblock %}
+{% block content %}
+<section class="page-heading">
+  <div><p class="eyebrow">Exact-version pipeline</p><h1>Real exploratory pipeline</h1></div>
+  <span class="badge badge-warning">EXPLORATORY · PIT INCOMPLETE</span>
+</section>
+<section class="panel">
+  <h2>Run status</h2>
+  <p><strong>Version:</strong> {{ view.run_version }}</p>
+  <p><strong>Classification:</strong> {{ view.classification }}</p>
+  <p><strong>Status:</strong> {{ view.status }}</p>
+  <p><strong>Synthetic:</strong> {{ view.synthetic }}</p>
+  {% if view.backtest_artifact_version %}<p><strong>Backtest detail:</strong> <a href="/backtests/{{ view.backtest_artifact_version }}">{{ view.backtest_artifact_version }}</a></p>{% endif %}
+</section>
+<section class="panel"><h2>Pipeline stages</h2><div class="table-wrap"><table><thead><tr><th>Stage</th><th>Status</th><th>Exact output version</th><th>Reason</th></tr></thead><tbody>
+{% for stage in view.stages %}<tr><td>{{ stage.name }}</td><td>{{ stage.status }}</td><td>{{ stage.output_version or 'none' }}</td><td>{{ stage.reason_code or 'none' }}</td></tr>{% endfor %}
+</tbody></table></div></section>
+<section class="panel"><h2>Coverage and promotion blockers</h2><dl class="definition-grid">
+{% for key, value in view.coverage.items() if key != 'promotion_blockers' %}<div><dt>{{ key }}</dt><dd>{{ value }}</dd></div>{% endfor %}
+</dl><h3>Promotion blockers</h3><ul>{% for blocker in view.coverage.promotion_blockers %}<li>{{ blocker }}</li>{% endfor %}</ul></section>
+{% endblock %}

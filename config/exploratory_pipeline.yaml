@@ -1,0 +1,13 @@
+cache_root: data/cache
+artifact_root: artifacts
+state_root: state
+instruments:
+  - "1301"
+  - "2317"
+  - "2330"
+start: "2025-09-17"
+end: "2025-12-31"
+chunk_size: 500
+maximum_instruments: 10
+maximum_date_range_days: 366
+maximum_rows: 100000
