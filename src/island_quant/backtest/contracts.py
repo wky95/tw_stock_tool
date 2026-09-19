@@ -73,7 +73,10 @@ class BacktestSession:
 
 
 class BacktestStrategy(Protocol):
-    strategy_id: str
-    version: str
+    @property
+    def strategy_id(self) -> str: ...
+
+    @property
+    def version(self) -> str: ...
 
     def targets(self, session: BacktestSession) -> tuple[TargetPosition, ...]: ...

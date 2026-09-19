@@ -13,15 +13,19 @@
       <span class="brand-mark">IQ</span><span><strong>Island Quant</strong><small>Research Console</small></span>
     </a>
     <nav aria-label="Primary navigation">
+      {% if view.context.environment == 'DEMO' %}
       <a class="nav-item {{ 'active' if active == 'overview' }}" href="/"><span>OV</span>Overview</a>
       <a class="nav-item {{ 'active' if active == 'data-health' }}" href="/data-health"><span>DH</span>Data Health</a>
       <a class="nav-item {{ 'active' if active == 'factors' }}" href="/factors"><span>FX</span>Factors</a>
       <a class="nav-item {{ 'active' if active == 'experiments' }}" href="/experiments"><span>ML</span>ML Experiments</a>
+      {% endif %}
       <a class="nav-item {{ 'active' if active == 'backtests' }}" href="/backtests"><span>BT</span>Backtests</a>
+      {% if view.context.environment == 'DEMO' %}
       <a class="nav-item {{ 'active' if active == 'system' }}" href="/system"><span>SY</span>System</a>
+      {% endif %}
     </nav>
     <div class="sidebar-foot">
-      <span class="status-dot"></span> Read-only fixture
+      <span class="status-dot"></span> Read-only {{ 'fixture' if view.context.environment == 'DEMO' else 'artifact' }}
       <small>Live execution unavailable</small>
     </div>
   </aside>
@@ -29,10 +33,10 @@
     <header class="topbar">
       <button class="menu-button" type="button" aria-label="Toggle navigation" data-menu>Menu</button>
       <div class="top-meta">
-        <span class="badge badge-demo">DEMO</span>
+        <span class="badge badge-demo">{{ view.context.environment }}</span>
         <span class="meta-item"><small>Dataset</small>{{ view.context.dataset_version }}</span>
-        <span class="badge badge-warning">PIT incomplete</span>
-        <span class="meta-item hide-narrow"><small>Artifact update</small>{{ view.context.last_artifact_update.strftime('%Y-%m-%d %H:%M UTC') }}</span>
+        <span class="badge badge-warning">PIT {{ view.context.pit_completeness }}</span>
+        <span class="meta-item hide-narrow"><small>Artifact update</small>{{ view.context.last_artifact_update.strftime('%Y-%m-%d %H:%M %Z') }}</span>
       </div>
       <button class="theme-button" type="button" data-theme-toggle aria-label="Toggle color theme">Theme</button>
     </header>
@@ -46,7 +50,7 @@
       <label>Date range
         <select disabled><option>{{ view.context.selected_date_range }}</option></select>
       </label>
-      <span class="fixture-chip">Synthetic fixture · seed 20240918</span>
+      <span class="fixture-chip">{{ 'Synthetic fixture · seed 20240918' if view.context.environment == 'DEMO' else 'Exact-version artifact · read only' }}</span>
     </section>
     <main class="content">
       {% block content %}{% endblock %}

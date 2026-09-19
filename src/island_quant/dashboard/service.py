@@ -4,10 +4,13 @@ from __future__ import annotations
 
 import math
 from collections.abc import Callable
+from datetime import datetime
 from typing import Literal
 
+from island_quant.dashboard.backtests import BacktestArtifactQuery
 from island_quant.dashboard.fixture import DemoDashboardFixture
 from island_quant.dashboard.models import (
+    DashboardContext,
     DataHealthView,
     DataIssuePage,
     ExperimentDetail,
@@ -27,9 +30,59 @@ class DashboardQueryService:
         self,
         fixture: DemoDashboardFixture | None = None,
         provenance_provider: Callable[[], CodeProvenance] = capture_code_provenance,
+        backtest_query: BacktestArtifactQuery | None = None,
     ) -> None:
         self.fixture = fixture or DemoDashboardFixture()
         self.provenance_provider = provenance_provider
+        self.backtest_query = backtest_query
+
+    @property
+    def artifact_mode(self) -> bool:
+        return self.backtest_query is not None
+
+    def backtest_context(self) -> DashboardContext:
+        if self.backtest_query is None:
+            return self.fixture.context
+        summary = self.backtest_query.summaries()[0]
+        banner_parts = ["READ-ONLY BACKTEST ARTIFACT"]
+        if summary["synthetic_demo"]:
+            banner_parts.append("SYNTHETIC")
+        banner_parts.append(str(summary["classification"]).upper())
+        if summary["completeness_status"] != "validated":
+            banner_parts.append("PIT INCOMPLETE")
+        if summary["dirty"]:
+            banner_parts.append("DIRTY SOURCE TREE")
+        banner_parts.append("NOT FOR LIVE TRADING")
+        return DashboardContext(
+            environment="ARTIFACT",
+            banner=" / ".join(banner_parts),
+            dataset_version=str(summary["artifact_version"])[:12],
+            pit_completeness=(
+                "validated"
+                if summary["completeness_status"] == "validated"
+                else "incomplete"
+            ),
+            last_artifact_update=datetime.fromisoformat(str(summary["created_time"])),
+            universes=("Pinned artifact universe",),
+            selected_universe="Pinned artifact universe",
+            selected_date_range=" to ".join(summary["date_range"]),
+        )
+
+    def backtests(self) -> object:
+        if self.backtest_query is None:
+            return self.fixture.backtests()
+        return {
+            "context": self.backtest_context(),
+            "items": self.backtest_query.summaries(),
+        }
+
+    def backtest(self, version: str) -> dict[str, object] | None:
+        if self.backtest_query is None:
+            return None
+        detail = self.backtest_query.detail(version)
+        if detail is None:
+            return None
+        return {"context": self.backtest_context(), **detail}
 
     def overview(self) -> OverviewView:
         source = self.fixture

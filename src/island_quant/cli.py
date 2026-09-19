@@ -10,6 +10,7 @@ import sys
 from datetime import UTC, datetime
 from importlib.metadata import version
 from pathlib import Path
+from typing import Any
 
 import polars as pl
 import yaml
@@ -99,8 +100,44 @@ def build_parser() -> argparse.ArgumentParser:
     card = subparsers.add_parser("generate-model-card")
     card.add_argument("--experiment-artifact-version", required=True)
     card.add_argument("--output", type=Path, required=True)
+    run_backtest = subparsers.add_parser("run-backtest")
+    run_backtest.add_argument("--demo", action="store_true")
+    run_backtest.add_argument("--dry-run", action="store_true")
+    for name in (
+        "prediction-artifact-version",
+        "model-artifact-version",
+        "dataset-version",
+        "universe-version",
+        "calendar-version",
+        "corporate-action-version",
+        "benchmark-version",
+        "target-policy-version",
+    ):
+        run_backtest.add_argument(f"--{name}")
+    inspect_backtest = subparsers.add_parser("inspect-backtest")
+    inspect_backtest.add_argument("--artifact-version", required=True)
+    inspect_backtest.add_argument(
+        "--artifact-namespace", choices=("candidate", "demo"), default="candidate"
+    )
+    compare_backtests = subparsers.add_parser("compare-backtests")
+    compare_backtests.add_argument("--left-version", required=True)
+    compare_backtests.add_argument("--right-version", required=True)
+    compare_backtests.add_argument(
+        "--artifact-namespace", choices=("candidate", "demo"), default="candidate"
+    )
+    backtest_report = subparsers.add_parser("generate-backtest-report")
+    backtest_report.add_argument("--artifact-version", required=True)
+    backtest_report.add_argument("--output", type=Path, required=True)
+    backtest_report.add_argument(
+        "--artifact-namespace", choices=("candidate", "demo"), default="candidate"
+    )
+    backtest_report.add_argument("--force", action="store_true")
     dashboard = subparsers.add_parser("dashboard", help="run the read-only research dashboard")
     dashboard.add_argument("--demo", action="store_true", help="use deterministic synthetic data")
+    dashboard.add_argument("--artifact-version")
+    dashboard.add_argument(
+        "--artifact-namespace", choices=("candidate", "demo"), default="candidate"
+    )
     dashboard.add_argument("--host", default="127.0.0.1")
     dashboard.add_argument("--port", type=int, default=8765)
     dashboard.add_argument("--reload", action="store_true")
@@ -141,8 +178,16 @@ def main(argv: list[str] | None = None) -> int:
         return _inspect_experiment(args, settings)
     elif args.command == "generate-model-card":
         return _generate_model_card(args, settings)
+    elif args.command == "run-backtest":
+        return _run_backtest(args, settings)
+    elif args.command == "inspect-backtest":
+        return _inspect_backtest(args, settings)
+    elif args.command == "compare-backtests":
+        return _compare_backtests(args, settings)
+    elif args.command == "generate-backtest-report":
+        return _generate_backtest_report(args, settings)
     elif args.command == "dashboard":
-        return _dashboard(args)
+        return _dashboard(args, settings)
     return 0
 
 
@@ -774,26 +819,216 @@ def _generate_model_card(args: argparse.Namespace, settings: AppSettings) -> int
     return 0
 
 
-def _dashboard(args: argparse.Namespace) -> int:
+def _run_backtest(args: argparse.Namespace, settings: AppSettings) -> int:
+    pinned_names = (
+        "prediction_artifact_version",
+        "model_artifact_version",
+        "dataset_version",
+        "universe_version",
+        "calendar_version",
+        "corporate_action_version",
+        "benchmark_version",
+        "target_policy_version",
+    )
+    pinned = {name: getattr(args, name) for name in pinned_names}
     if not args.demo:
-        print("configuration error: dashboard currently requires --demo", file=sys.stderr)
+        missing = [name for name, value in pinned.items() if not value]
+        invalid = [name for name, value in pinned.items() if value in {"latest", "current"}]
+        if missing or invalid:
+            print(
+                "configuration error: real backtests require exact pinned versions; "
+                f"missing={missing}, invalid={invalid}",
+                file=sys.stderr,
+            )
+            return 2
+        if args.dry_run:
+            print(json.dumps({"dry_run": True, "pinned_inputs": pinned}, sort_keys=True))
+            return 0
+        print(
+            "configuration error: selected-ledger filesystem adapter is not configured; "
+            "no demo fallback was used",
+            file=sys.stderr,
+        )
+        return 2
+    from island_quant.backtest.integration import build_demo_backtest_artifact
+
+    if args.dry_run:
+        from island_quant.analytics.scenarios import default_scenario_grid
+
+        count = len(default_scenario_grid())
+        print(
+            json.dumps(
+                {
+                    "dry_run": True,
+                    "mode": "demo",
+                    "artifact_namespace": "demo",
+                    "scenario_count": count,
+                    "estimated_engine_runs": count + 1,
+                },
+                sort_keys=True,
+            )
+        )
+        return 0
+    artifact = build_demo_backtest_artifact(
+        settings.research.artifact_root / "demo", dry_run=False
+    )
+    print(
+        json.dumps(
+            {
+                "dry_run": args.dry_run,
+                "run_id": artifact.manifest.backtest_run_id,
+                "artifact_version": artifact.manifest.artifact_version,
+                "event_journal_checksum": artifact.manifest.event_journal_checksum,
+                "ledger_checksum": artifact.manifest.ledger_checksum,
+                "report_checksum": artifact.manifest.report_checksum,
+                "classification": artifact.manifest.classification,
+                "artifact_namespace": "demo",
+            },
+            sort_keys=True,
+        )
+    )
+    return 0
+
+
+def _artifact_root(args: argparse.Namespace, settings: AppSettings) -> Path:
+    return (
+        settings.research.artifact_root / "demo"
+        if args.artifact_namespace == "demo"
+        else settings.research.artifact_root
+    )
+
+
+def _read_backtest(version: str, root: Path) -> dict[str, Any] | None:
+    from island_quant.backtest.artifacts import BacktestArtifactStore
+
+    try:
+        return BacktestArtifactStore(root).read(version)
+    except ValueError:
+        print("artifact error: invalid artifact version format", file=sys.stderr)
+    except FileNotFoundError:
+        print("artifact error: artifact not found", file=sys.stderr)
+    except RuntimeError:
+        print("artifact error: artifact integrity verification failed", file=sys.stderr)
+    return None
+
+
+def _inspect_backtest(args: argparse.Namespace, settings: AppSettings) -> int:
+    payload = _read_backtest(args.artifact_version, _artifact_root(args, settings))
+    if payload is None:
+        return 2
+    print(json.dumps(payload, sort_keys=True, default=str))
+    return 0
+
+
+def _compare_backtests(args: argparse.Namespace, settings: AppSettings) -> int:
+    root = _artifact_root(args, settings)
+    left = _read_backtest(args.left_version, root)
+    right = _read_backtest(args.right_version, root)
+    if left is None or right is None:
+        return 2
+    keys = ("total_return", "turnover", "fees", "taxes", "slippage_cost")
+    comparison = {
+        key: {
+            "left": left["performance_metrics"][key],
+            "right": right["performance_metrics"][key],
+        }
+        for key in keys
+    }
+    print(json.dumps({"left": args.left_version, "right": args.right_version, **comparison}))
+    return 0
+
+
+def _generate_backtest_report(args: argparse.Namespace, settings: AppSettings) -> int:
+    artifact = _read_backtest(args.artifact_version, _artifact_root(args, settings))
+    if artifact is None:
+        return 2
+    artifact_root = settings.research.artifact_root.resolve()
+    resolved_output = args.output.resolve()
+    if resolved_output.is_relative_to(artifact_root):
+        print("report error: output cannot be inside immutable artifact storage", file=sys.stderr)
+        return 2
+    if args.output.exists() and not args.force:
+        print("report error: output exists; use --force to replace it", file=sys.stderr)
+        return 2
+    manifest = artifact["manifest"]
+    metrics = artifact["performance_metrics"]
+    escape = _escape_markdown
+    report = (
+        "# Backtest candidate report\n\n"
+        f"- Artifact: `{args.artifact_version}`\n"
+        f"- Run: `{escape(str(manifest['backtest_run_id']))}`\n"
+        f"- Classification: **{escape(str(manifest['classification']))}**\n"
+        f"- PIT status: **{escape(str(manifest['completeness_status']))}**\n"
+        f"- Synthetic: `{manifest['synthetic_demo']}`\n"
+        f"- Dirty: `{manifest['dirty']}`\n"
+        f"- Total return: `{metrics['total_return']}`\n"
+        f"- Ending equity: `{metrics['ending_equity']} TWD`\n"
+        f"- Fee/tax policy: `{escape(str(manifest['fee_tax_policy_version']))}`\n"
+        f"- Execution model: `{escape(str(manifest['execution_model_version']))}`\n"
+        f"- Settlement policy: `{escape(str(manifest['settlement_policy_version']))}`\n"
+        f"- Reconciliation residual: `{metrics['reconciliation_residual']}`\n\n"
+        "> Synthetic/exploratory engineering evidence; not investment performance.\n"
+    )
+    args.output.parent.mkdir(parents=True, exist_ok=True)
+    args.output.write_text(report, encoding="utf-8")
+    print(json.dumps({"artifact_version": args.artifact_version, "output": args.output.name}))
+    return 0
+
+
+def _escape_markdown(value: str) -> str:
+    escaped = (
+        f"\\{character}" if character in r"\\`*_{}[]<>#|" else character
+        for character in value
+    )
+    return "".join(escaped)
+
+
+def _dashboard(args: argparse.Namespace, settings: AppSettings) -> int:
+    if args.demo == bool(args.artifact_version):
+        print(
+            "configuration error: dashboard requires --demo or --artifact-version "
+            "(exactly one)",
+            file=sys.stderr,
+        )
         return 2
     if not 1 <= args.port <= 65535:
         print("configuration error: dashboard port must be between 1 and 65535", file=sys.stderr)
         return 2
     import uvicorn
 
+    if args.demo:
+        application: Any = "island_quant.dashboard.app:app"
+        mode = "demo"
+    else:
+        if args.reload:
+            print("configuration error: artifact dashboard forbids --reload", file=sys.stderr)
+            return 2
+        from island_quant.backtest.artifacts import BacktestArtifactStore
+        from island_quant.dashboard.app import create_app
+        from island_quant.dashboard.backtests import BacktestArtifactQuery
+        from island_quant.dashboard.service import DashboardQueryService
+
+        try:
+            adapter = BacktestArtifactQuery(
+                BacktestArtifactStore(_artifact_root(args, settings)), args.artifact_version
+            )
+        except ValueError:
+            print("artifact error: invalid artifact version format", file=sys.stderr)
+            return 2
+        except FileNotFoundError:
+            print("artifact error: artifact not found", file=sys.stderr)
+            return 2
+        except RuntimeError:
+            print("artifact error: artifact integrity verification failed", file=sys.stderr)
+            return 2
+        application = create_app(DashboardQueryService(backtest_query=adapter))
+        mode = f"artifact {args.artifact_version}"
     print(
-        f"Island Quant demo dashboard: http://{args.host}:{args.port}\n"
-        "DEMO / EXPLORATORY — NOT FOR LIVE TRADING\n"
-        "Press Ctrl+C to stop."
+        f"Island Quant {mode} dashboard: http://{args.host}:{args.port}\n"
+        "READ ONLY / NOT FOR LIVE TRADING\nPress Ctrl+C to stop."
     )
     uvicorn.run(
-        "island_quant.dashboard.app:app",
-        host=args.host,
-        port=args.port,
-        reload=args.reload,
-        access_log=True,
+        application, host=args.host, port=args.port, reload=args.reload, access_log=True
     )
     return 0
 

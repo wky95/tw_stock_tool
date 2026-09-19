@@ -181,7 +181,7 @@ class EventDrivenBacktestEngine:
                         _intent_payload(intent, converter.version),
                         causation_id=target_event.event_id,
                     )
-                    intents.append((intent, intent_event.event_id))
+                    intents.append((intent, intent_event.event_id, target.reason))
             accounting_time = datetime.combine(calendar_date, time(8, 30), tzinfo=TAIPEI)
             processed = ledger.process_settlements(calendar_date, accounting_time)
             journal.append(
@@ -211,7 +211,7 @@ class EventDrivenBacktestEngine:
                     item[0].instrument.key,
                 )
             )
-            for intent, intent_event_id in intents:
+            for intent, intent_event_id, target_reason in intents:
                 quote = quotes[intent.instrument.key]
                 estimated_price = simulator.estimated_price(intent, quote)
                 decision = risk.evaluate(
@@ -283,6 +283,10 @@ class EventDrivenBacktestEngine:
                         "unfilled_quantity": outcome.unfilled_quantity,
                         "fill_policy_version": config.fill_policy.version,
                         "fee_policy_version": config.fee_policy.version,
+                        "reference_price": quote.open_price,
+                        "reference_source": "next_session_open",
+                        "tick_policy_version": config.tick_policy.version,
+                        "target_reason": target_reason,
                     },
                     causation_id=risk_event.event_id,
                 )

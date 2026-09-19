@@ -50,7 +50,9 @@ Phase 1 Slice 4 已提供：
 
 ## 本機 Research Dashboard
 
-Dashboard 是可操作的唯讀 UI 原型，只讀取固定的 synthetic fixture，不會讀取個人 production artifact、不連接券商，也沒有下單、模型 promotion 或 live-control endpoint。
+Dashboard 是可操作的唯讀 UI。`--demo` 只讀固定 synthetic fixture；
+`--artifact-version` 則只讀一個明確版本的本機 backtest candidate。兩種模式不會互相
+fallback，不連接券商，也沒有下單、模型 promotion 或 live-control endpoint。
 
 安裝後啟動：
 
@@ -58,6 +60,24 @@ Dashboard 是可操作的唯讀 UI 原型，只讀取固定的 synthetic fixture
 source .venv/bin/activate
 island-quant dashboard --demo
 ```
+
+建立一個完全離線的 synthetic backtest candidate，再以 artifact mode 檢視：
+
+```bash
+island-quant run-backtest --demo
+island-quant inspect-backtest --artifact-namespace demo --artifact-version <exact-version>
+island-quant dashboard --artifact-namespace demo --artifact-version <exact-version>
+```
+
+另提供 `compare-backtests --left-version ... --right-version ...` 與
+`generate-backtest-report --artifact-version ... --output ...`。非 demo 的
+`run-backtest` 必須明確 pin prediction、model、dataset、universe、calendar、corporate
+action、benchmark 與 target-policy versions；本 Slice 尚未配置真實 selected-ledger
+filesystem adapter，因此會 fail closed，不會偷偷改用 demo。
+
+Demo backtest artifacts 固定寫入設定之 `artifact_root/demo/` namespace；candidate namespace
+不接受 demo fallback。Artifact version 僅接受 64 字元 lowercase SHA-256 digest。Markdown
+report 預設拒絕覆寫，必須明確加上 `--force`，且不可輸出到 immutable artifact root 內。
 
 預設只監聽 `127.0.0.1:8765`。瀏覽：
 
@@ -79,7 +99,7 @@ docker run --rm -p 127.0.0.1:8765:8765 \
   island-quant:dashboard dashboard --demo --host 0.0.0.0
 ```
 
-Demo fixture 固定 seed `20240918`，包含 15 檔虛構 instrument、90 sessions、14 個 baseline factors、3 個 ML experiments 和數筆刻意建立的品質問題。所有頁面固定顯示 `DEMO / EXPLORATORY — NOT FOR LIVE TRADING`；完美 IC 及信賴區間僅是工程 fixture，沒有統計或獲利意義。
+Demo Dashboard fixture 固定 seed `20240918`，包含 15 檔虛構 instrument、90 sessions、14 個 baseline factors、3 個 ML experiments 和數筆刻意建立的品質問題。Synthetic backtest 另使用固定的三標的、三交易日 fixture 與完整敏感度 grid。所有結果固定標記 synthetic／exploratory；完美 IC、信賴區間、報酬、Sharpe 或 drawdown 僅是工程 fixture，沒有統計、投資或獲利意義。
 
 安全限制：服務預設 localhost、所有 dashboard API 都是 GET、live trading 永遠為 false、broker 永遠未設定，且 UI 不顯示 secrets、credentials、home directory 或敏感絕對路徑。
 

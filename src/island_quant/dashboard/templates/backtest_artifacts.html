@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block title %}Backtests · Island Quant{% endblock %}
+{% block content %}
+<div class="page-heading"><div><p class="eyebrow">Exact-version artifacts</p><h1>Backtest candidates</h1><p>Read-only results. No scenario is ranked or recommended.</p></div><span class="read-only">Read only</span></div>
+<div class="warning-callout strong">Candidate results are read-only research evidence, never live-trading approval. Synthetic or exploratory status is shown explicitly per artifact.</div>
+<section class="panel"><div class="panel-head"><h2>Pinned runs</h2><span>{{ view.items|length }} artifact</span></div><div class="table-wrap"><table class="data-table"><thead><tr><th>Run</th><th>Classification</th><th>Date range</th><th>Total return</th><th>Ending equity</th></tr></thead><tbody>{% for item in view.items %}<tr><td><a class="mono" href="/backtests/{{ item.artifact_version }}">{{ item.backtest_run_id }}</a><small>{{ item.artifact_version[:16] }}</small></td><td><span class="status status-exploratory">{{ item.classification }}</span></td><td>{{ item.date_range|join(' → ') }}</td><td>{{ item.total_return }}</td><td>{{ item.ending_equity }} TWD</td></tr>{% endfor %}</tbody></table></div></section>
+{% endblock %}

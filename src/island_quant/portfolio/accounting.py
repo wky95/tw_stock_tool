@@ -257,18 +257,18 @@ class PortfolioLedger:
             net = gross - fill.fee - fill.tax
             state.quantity -= fill.quantity
             state.book_cost -= cost_basis
-            self.realized_pnl += net - cost_basis
+            self.realized_pnl += gross - cost_basis - fill.fee - fill.tax
             if state.quantity == 0:
                 state.average_cost = ZERO
                 state.book_cost = ZERO
             else:
                 state.average_cost = state.book_cost / state.quantity
             postings = (
+                Posting("cost_of_sales", cost_basis),
+                Posting(f"inventory:{fill.instrument.key}", -cost_basis),
                 Posting("settlement_receivable", net),
                 Posting("commission_expense", fill.fee),
                 Posting("transaction_tax_expense", fill.tax),
-                Posting("cost_of_sales", cost_basis),
-                Posting(f"inventory:{fill.instrument.key}", -cost_basis),
                 Posting("sale_proceeds", -gross),
             )
             settlement_amount = net
@@ -297,6 +297,7 @@ class PortfolioLedger:
                 "price": str(fill.price),
                 "fee": str(fill.fee),
                 "tax": str(fill.tax),
+                "cost_basis": str(cost_basis if fill.side is Side.SELL else ZERO),
                 "settlement_due": due_date.isoformat(),
             },
         )
@@ -554,11 +555,18 @@ class PortfolioLedger:
         )
         if fees_from_fills != self.total_fees:
             raise AccountingInvariantError("fees do not reconcile to fill journal")
-        derived_realized = -(
-            balances.get("sale_proceeds", ZERO)
-            + balances.get("cost_of_sales", ZERO)
-            + balances.get("commission_expense", ZERO)
-            + balances.get("transaction_tax_expense", ZERO)
+        derived_realized = sum(
+            (
+                Decimal(transaction.metadata["price"])
+                * Decimal(transaction.metadata["quantity"])
+                - Decimal(transaction.metadata["cost_basis"])
+                - Decimal(transaction.metadata["fee"])
+                - Decimal(transaction.metadata["tax"])
+                for transaction in self.transactions
+                if transaction.kind == "trade_fill"
+                and transaction.metadata["side"] == Side.SELL.value
+            ),
+            ZERO,
         )
         if derived_realized != self.realized_pnl:
             raise AccountingInvariantError("realized PnL does not reconcile to journal")
