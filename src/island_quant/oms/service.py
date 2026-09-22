@@ -4,14 +4,14 @@ from __future__ import annotations
 
 import hashlib
 import json
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from datetime import datetime
 from decimal import Decimal
 
 from island_quant.backtest.policies import FeeTaxPolicy
 from island_quant.brokers.paper import DeterministicPaperBroker, PaperOrderRequest
 from island_quant.domain.models import Side
-from island_quant.oms.models import OMSEvent, OMSOrder, OMSState
+from island_quant.oms.models import OMSEvent, OMSOrder, OMSState, PaperOrderLineage
 from island_quant.oms.repository import SQLiteOMSRepository
 
 
@@ -26,6 +26,7 @@ class PaperOrderCommand:
     available_cash: Decimal
     created_at: datetime
     available_position: int = 0
+    lineage: PaperOrderLineage | None = None
 
 
 class PaperOMSService:
@@ -62,8 +63,19 @@ class PaperOMSService:
             command.created_at,
             command.created_at,
         )
-        created = self._event(order, OMSState.CREATED, None, "command_accepted", "created")
-        current = self.repository.create(order, created)
+        lineage_payload = asdict(command.lineage) if command.lineage is not None else None
+        if lineage_payload is not None and command.lineage is not None:
+            lineage_payload["decision_time"] = command.lineage.decision_time.isoformat()
+            lineage_payload["target_weight"] = str(command.lineage.target_weight)
+        created = self._event(
+            order,
+            OMSState.CREATED,
+            None,
+            "command_accepted",
+            "created",
+            lineage_payload,
+        )
+        current = self.repository.create(order, created, lineage=command.lineage)
         current = self._transition(current, OMSState.RISK_PENDING, "risk_evaluation_started")
         gross = command.estimated_price * command.quantity
         estimated_fee, estimated_tax = self.fee_policy.costs(Side(command.side), gross)

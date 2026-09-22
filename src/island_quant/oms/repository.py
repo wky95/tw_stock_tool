@@ -16,6 +16,7 @@ from island_quant.oms.models import (
     OMSInvariantError,
     OMSOrder,
     OMSState,
+    PaperOrderLineage,
     validate_transition,
 )
 
@@ -25,7 +26,7 @@ class OMSPersistenceError(RuntimeError):
 
 
 class SQLiteOMSRepository:
-    schema_version = 2
+    schema_version = 3
 
     def __init__(self, path: Path, *, environment: str = "paper", timeout: float = 1.0) -> None:
         if environment != "paper":
@@ -99,6 +100,20 @@ class SQLiteOMSRepository:
                     original_quantity INTEGER NOT NULL,
                     status TEXT NOT NULL
                 );
+                CREATE TABLE IF NOT EXISTS order_lineage (
+                    order_id TEXT PRIMARY KEY REFERENCES orders(order_id),
+                    target_artifact_version TEXT NOT NULL,
+                    strategy_version TEXT NOT NULL,
+                    model_artifact_version TEXT NOT NULL,
+                    prediction_artifact_version TEXT NOT NULL,
+                    dataset_version TEXT NOT NULL,
+                    universe_version TEXT NOT NULL,
+                    target_policy_version TEXT NOT NULL,
+                    risk_policy_version TEXT NOT NULL,
+                    execution_session TEXT NOT NULL,
+                    decision_time TEXT NOT NULL,
+                    target_weight TEXT NOT NULL
+                );
                 """
             )
             connection.execute(
@@ -123,7 +138,13 @@ class SQLiteOMSRepository:
         if result is None or result[0] != "ok" or environment is None or environment[0] != "paper":
             raise OMSPersistenceError("paper OMS database integrity or environment mismatch")
 
-    def create(self, order: OMSOrder, event: OMSEvent) -> OMSOrder:
+    def create(
+        self,
+        order: OMSOrder,
+        event: OMSEvent,
+        *,
+        lineage: PaperOrderLineage | None = None,
+    ) -> OMSOrder:
         if order.state is not OMSState.CREATED or event.state is not OMSState.CREATED:
             raise OMSInvariantError("new order must start in Created state")
         event.verify()
@@ -139,6 +160,24 @@ class SQLiteOMSRepository:
                     _order_values(order),
                 )
                 self._insert_event(connection, event)
+                if lineage is not None:
+                    connection.execute(
+                        "INSERT INTO order_lineage VALUES(?,?,?,?,?,?,?,?,?,?,?,?)",
+                        (
+                            order.order_id,
+                            lineage.target_artifact_version,
+                            lineage.strategy_version,
+                            lineage.model_artifact_version,
+                            lineage.prediction_artifact_version,
+                            lineage.dataset_version,
+                            lineage.universe_version,
+                            lineage.target_policy_version,
+                            lineage.risk_policy_version,
+                            lineage.execution_session,
+                            lineage.decision_time.isoformat(),
+                            str(lineage.target_weight),
+                        ),
+                    )
         except sqlite3.IntegrityError as exc:
             raise OMSPersistenceError(
                 "duplicate OMS identity conflicts with existing state"
@@ -478,6 +517,26 @@ class SQLiteOMSRepository:
         with self._connect() as connection:
             rows = connection.execute("SELECT * FROM reservations ORDER BY order_id").fetchall()
         return tuple(dict(row) for row in rows)
+
+    def order_lineage(self, order_id: str) -> dict[str, Any] | None:
+        with self._connect() as connection:
+            row = connection.execute(
+                "SELECT * FROM order_lineage WHERE order_id=?", (order_id,)
+            ).fetchone()
+            event_row = connection.execute(
+                "SELECT document FROM events WHERE order_id=? AND sequence=1", (order_id,)
+            ).fetchone()
+        if row is None:
+            return None
+        result = dict(row)
+        if event_row is None:
+            raise OMSPersistenceError("paper order lineage has no creation event")
+        event = _event(json.loads(str(event_row[0])))
+        payload = dict(event.payload)
+        expected = {key: str(value) for key, value in result.items() if key != "order_id"}
+        if payload != expected:
+            raise OMSPersistenceError("paper order lineage differs from the event journal")
+        return result
 
     def mark_outbox_delivered(self, outbox_id: str, delivered_at: datetime) -> None:
         with self._transaction() as connection:

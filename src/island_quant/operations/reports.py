@@ -36,6 +36,9 @@ class PaperDailyReport:
     alert_count: int
     safe_mode: bool
     data_quality_issues: tuple[str, ...]
+    target_artifact_version: str | None = None
+    portfolio_projection_version: str | None = None
+    lineage: tuple[tuple[str, str], ...] = ()
 
     def __post_init__(self) -> None:
         if self.environment != "paper":

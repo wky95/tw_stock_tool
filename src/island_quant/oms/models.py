@@ -8,7 +8,38 @@ from datetime import datetime
 from decimal import Decimal
 from enum import StrEnum
 
-from island_quant.pipeline.artifacts import canonical_json
+from island_quant.pipeline.artifacts import canonical_json, require_exact_version
+
+
+@dataclass(frozen=True, slots=True)
+class PaperOrderLineage:
+    target_artifact_version: str
+    strategy_version: str
+    model_artifact_version: str
+    prediction_artifact_version: str
+    dataset_version: str
+    universe_version: str
+    target_policy_version: str
+    risk_policy_version: str
+    execution_session: str
+    decision_time: datetime
+    target_weight: Decimal
+
+    def __post_init__(self) -> None:
+        for version in (
+            self.target_artifact_version,
+            self.strategy_version,
+            self.model_artifact_version,
+            self.prediction_artifact_version,
+            self.dataset_version,
+            self.universe_version,
+            self.target_policy_version,
+        ):
+            require_exact_version(version)
+        if self.decision_time.tzinfo is None or self.decision_time.utcoffset() is None:
+            raise ValueError("paper order lineage decision time must be timezone-aware")
+        if not Decimal("0") <= self.target_weight <= Decimal("1"):
+            raise ValueError("paper order lineage target weight must be long-only")
 
 
 class OMSState(StrEnum):

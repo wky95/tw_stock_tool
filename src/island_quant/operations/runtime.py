@@ -21,6 +21,11 @@ from island_quant.operations.monitoring import (
 )
 from island_quant.operations.reports import PaperDailyReport, write_daily_report
 from island_quant.operations.scheduler import STANDARD_JOBS, PaperScheduler, RunState
+from island_quant.operations.strategy import (
+    ExactPaperTargetReader,
+    PaperTargetExecutor,
+    PaperTargetSnapshot,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -45,6 +50,9 @@ class PaperRuntime:
         report_root: Path,
         market: tuple[PaperMarketEvent, ...],
         risk_limits: PaperRiskLimits | None = None,
+        target_reader: ExactPaperTargetReader | None = None,
+        target_executor: PaperTargetExecutor | None = None,
+        target_artifact_version: str | None = None,
     ) -> None:
         self.oms = oms
         self.service = service
@@ -55,10 +63,21 @@ class PaperRuntime:
         self.report_root = report_root
         self.market = market
         self.risk_limits = risk_limits or PaperRiskLimits()
+        self.target_reader = target_reader
+        self.target_executor = target_executor
+        self.target_artifact_version = target_artifact_version
+        if (target_reader is None) != (target_executor is None) or (
+            target_reader is None
+        ) != (target_artifact_version is None):
+            raise ValueError(
+                "paper strategy reader, executor and artifact version are all required"
+            )
+        self.target_snapshot: PaperTargetSnapshot | None = None
         self.projection_version: str | None = None
         self.report_version: str | None = None
 
     def run_once(self, session: str, as_of: datetime) -> PaperRuntimeResult:
+        self.target_snapshot = None
         lifecycle = PaperServiceLifecycle(self.oms, self.broker, self.state)
         health = lifecycle.startup(as_of)
         if not health.ready:
@@ -67,16 +86,10 @@ class PaperRuntime:
             self.state.enter_safe_mode("scheduler_leader_unavailable")
             return PaperRuntimeResult("paper", session, True, (), None, None)
         handlers = {
-            "data_freshness_check": lambda: self._data_freshness(as_of),
-            "decision_snapshot": lambda: self.state.metric(
-                "last_successful_decision", "no_strategy_configured", as_of
-            ),
-            "feature_inference": lambda: self.state.metric(
-                "feature_inference", "no_strategy_configured", as_of
-            ),
-            "target_generation": lambda: self.state.metric(
-                "target_generation", "no_new_targets", as_of
-            ),
+            "data_freshness_check": lambda: self._data_freshness(session, as_of),
+            "decision_snapshot": lambda: self._decision_snapshot(session, as_of),
+            "feature_inference": lambda: self._feature_inference(as_of),
+            "target_generation": lambda: self._target_generation(as_of),
             "risk_evaluation": lambda: self._risk(as_of),
             "paper_order_submission": self._submit,
             "reconciliation": lambda: self._reconcile(as_of),
@@ -108,10 +121,15 @@ class PaperRuntime:
             self.report_version,
         )
 
-    def _data_freshness(self, as_of: datetime) -> None:
-        eligible = [item.event_time for item in self.market if item.event_time <= as_of]
+    def _data_freshness(self, session: str, as_of: datetime) -> None:
+        session_date = datetime.fromisoformat(session).date()
+        eligible = [
+            item.event_time
+            for item in self.market
+            if item.event_time <= as_of and item.event_time.date() == session_date
+        ]
         if not eligible:
-            raise RuntimeError("no pinned market event is available")
+            raise RuntimeError("no pinned market event is available for the execution session")
         age = Decimal(str((as_of - max(eligible)).total_seconds()))
         self.state.metric("last_market_data_timestamp", max(eligible).isoformat(), as_of)
         self.state.metric("data_latency", age, as_of)
@@ -122,18 +140,66 @@ class PaperRuntime:
             raise RuntimeError("market data freshness risk failed")
 
     def _risk(self, as_of: datetime) -> None:
+        failures = enforce_paper_risk(
+            self.state, self._risk_metrics(as_of), self.risk_limits, as_of
+        )
+        if failures:
+            raise RuntimeError("paper risk limit failed before target execution")
+        if self.target_snapshot is not None:
+            if self.target_executor is None:
+                raise RuntimeError("paper target executor is unavailable")
+            order_ids = self.target_executor.execute(
+                self.target_snapshot, self.state.current_portfolio(), created_at=as_of
+            )
+            self.state.metric("target_order_count", len(order_ids), as_of)
+        failures = enforce_paper_risk(
+            self.state, self._risk_metrics(as_of), self.risk_limits, as_of
+        )
+        if failures:
+            raise RuntimeError("paper risk limit failed")
+
+    def _risk_metrics(self, as_of: datetime) -> dict[str, Decimal]:
         portfolio = self.state.current_portfolio()
-        metrics = {
+        session_orders = [
+            order for order in self.oms.list_orders() if order.created_at.date() == as_of.date()
+        ]
+        return {
             "gross_exposure": Decimal(str(portfolio["gross_exposure"]))
             if portfolio
             else Decimal("0"),
             "drawdown": Decimal(str(portfolio["drawdown"])) if portfolio else Decimal("0"),
-            "orders": Decimal(len(self.oms.list_orders())),
+            "orders": Decimal(len(session_orders)),
             "notional": self.oms.reserved_cash(),
         }
-        failures = enforce_paper_risk(self.state, metrics, self.risk_limits, as_of)
-        if failures:
-            raise RuntimeError("paper risk limit failed")
+
+    def _decision_snapshot(self, session: str, as_of: datetime) -> None:
+        if self.target_reader is None or self.target_artifact_version is None:
+            self.state.metric("last_successful_decision", "no_strategy_configured", as_of)
+            return
+        self.target_snapshot = self.target_reader.read(
+            self.target_artifact_version,
+            session=datetime.fromisoformat(session).date(),
+            as_of=as_of,
+        )
+        self.state.metric("last_successful_decision", self.target_snapshot.artifact_version, as_of)
+
+    def _feature_inference(self, as_of: datetime) -> None:
+        if self.target_snapshot is None:
+            self.state.metric("feature_inference", "no_strategy_configured", as_of)
+            return
+        self.state.metric(
+            "feature_inference",
+            self.target_snapshot.lineage_value("model_artifact_version"),
+            as_of,
+        )
+
+    def _target_generation(self, as_of: datetime) -> None:
+        value = (
+            self.target_snapshot.artifact_version
+            if self.target_snapshot is not None
+            else "no_new_targets"
+        )
+        self.state.metric("target_generation", value, as_of)
 
     def _submit(self) -> None:
         self.service.process_outbox(self.broker)
@@ -168,29 +234,51 @@ class PaperRuntime:
         positions = tuple(
             (str(item["instrument_id"]), int(str(item["quantity"]))) for item in position_rows
         )
+        lineage = self.target_snapshot.lineage if self.target_snapshot is not None else ()
         report = PaperDailyReport(
-            1,
-            "paper",
-            session,
-            as_of,
-            "fresh",
-            "no-strategy-configured",
-            "no-model-configured",
-            str(portfolio["projection_version"]),
-            len(self.oms.list_orders()),
-            len(self.oms.fills()),
-            sum(order.state.value.endswith("Rejected") for order in self.oms.list_orders()),
-            positions,
-            Decimal(str(portfolio["cash"])),
-            Decimal(str(portfolio["nav"])),
-            Decimal(str(portfolio["daily_pnl"])),
-            Decimal(str(portfolio["fees"])) + Decimal(str(portfolio["taxes"])),
-            Decimal(str(portfolio["gross_exposure"])),
-            (),
-            "passed",
-            0,
-            False,
-            (),
+            schema_version=2,
+            environment="paper",
+            session=session,
+            generated_at=as_of,
+            data_freshness="fresh",
+            strategy_version=(
+                self.target_snapshot.lineage_value("strategy_version")
+                if self.target_snapshot is not None
+                else "no-strategy-configured"
+            ),
+            model_version=(
+                self.target_snapshot.lineage_value("model_artifact_version")
+                if self.target_snapshot is not None
+                else "no-model-configured"
+            ),
+            artifact_version=(
+                self.target_snapshot.artifact_version
+                if self.target_snapshot is not None
+                else str(portfolio["projection_version"])
+            ),
+            order_count=len(self.oms.list_orders()),
+            fill_count=len(self.oms.fills()),
+            rejection_count=sum(
+                order.state.value.endswith("Rejected") for order in self.oms.list_orders()
+            ),
+            positions=positions,
+            cash=Decimal(str(portfolio["cash"])),
+            nav=Decimal(str(portfolio["nav"])),
+            daily_pnl=Decimal(str(portfolio["daily_pnl"])),
+            costs=Decimal(str(portfolio["fees"])) + Decimal(str(portfolio["taxes"])),
+            gross_exposure=Decimal(str(portfolio["gross_exposure"])),
+            risk_events=(),
+            reconciliation_status="passed",
+            alert_count=0,
+            safe_mode=False,
+            data_quality_issues=(),
+            target_artifact_version=(
+                self.target_snapshot.artifact_version
+                if self.target_snapshot is not None
+                else None
+            ),
+            portfolio_projection_version=str(portfolio["projection_version"]),
+            lineage=lineage,
         )
         self.report_version = write_daily_report(self.report_root, report)
 

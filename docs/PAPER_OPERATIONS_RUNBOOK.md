@@ -23,6 +23,21 @@ The default files are deterministic engineering fixtures. Replace them only with
 paper inputs. A missing instrument reference, calendar session, fresh market event, complete mark or
 reconcilable fill causes the run to fail closed.
 
+An optional strategy run must name one exact validated paper-candidate version; `latest` and
+exploratory artifacts are rejected:
+
+```bash
+island-quant paper-service-run --paper --once \
+  --session 2025-01-02 --as-of 2025-01-02T09:00:00+08:00 \
+  --target-artifact-version <exact-sha256> --dry-run
+```
+
+Dry-run verifies the artifact contract without creating OMS state. Before removing `--dry-run`,
+confirm its session, decision/availability times, complete held-position coverage, long-only weights,
+pinned instrument/calendar lineage, and execution prices. The normal run stores research lineage
+with each order and in the daily report. A rejected target is not manually bypassed; publish a new
+immutable corrected artifact version.
+
 Jobs use exact job versions, a pinned trading calendar session, a singleton lease, deterministic run
 keys, bounded retries and dead-letter state. A completed decision session is never run again.
 

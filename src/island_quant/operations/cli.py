@@ -26,6 +26,7 @@ from island_quant.operations.accounting import (
 from island_quant.operations.monitoring import OperationsStateStore
 from island_quant.operations.runtime import PaperRuntime, runtime_result_dict
 from island_quant.operations.scheduler import FixedClock, PaperScheduler
+from island_quant.operations.strategy import ExactPaperTargetReader, PaperTargetExecutor
 
 
 def add_runtime_parser(
@@ -37,6 +38,7 @@ def add_runtime_parser(
     parser.add_argument("--session", required=True)
     parser.add_argument("--as-of", required=True)
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--target-artifact-version")
 
 
 def run_runtime(args: argparse.Namespace, settings: AppSettings) -> int:
@@ -79,6 +81,16 @@ def _run_runtime(args: argparse.Namespace, settings: AppSettings) -> int:
     sessions = tuple(date.fromisoformat(str(item)) for item in calendar_payload)
     if session not in sessions:
         raise ValueError("paper service session is absent from pinned calendar")
+    target_reader = (
+        ExactPaperTargetReader(settings.research.artifact_root)
+        if args.target_artifact_version is not None
+        else None
+    )
+    target_snapshot = (
+        target_reader.read(args.target_artifact_version, session=session, as_of=as_of)
+        if target_reader is not None
+        else None
+    )
     if args.dry_run:
         print(
             json.dumps(
@@ -89,6 +101,9 @@ def _run_runtime(args: argparse.Namespace, settings: AppSettings) -> int:
                     "as_of": args.as_of,
                     "jobs": 10,
                     "live_trading_enabled": False,
+                    "target_artifact_version": (
+                        target_snapshot.artifact_version if target_snapshot is not None else None
+                    ),
                 },
                 sort_keys=True,
             )
@@ -120,15 +135,29 @@ def _run_runtime(args: argparse.Namespace, settings: AppSettings) -> int:
             for item in market
         ),
     )
+    service = PaperOMSService(oms)
+    target_executor = (
+        PaperTargetExecutor(
+            oms,
+            service,
+            {item.instrument_id: item.market for item in instruments},
+            {item.instrument_id: item.reference_price for item in market},
+        )
+        if target_reader is not None
+        else None
+    )
     runtime = PaperRuntime(
         oms,
-        PaperOMSService(oms),
+        service,
         broker,
         state,
         scheduler,
         projector,
         settings.research.artifact_root,
         market,
+        target_reader=target_reader,
+        target_executor=target_executor,
+        target_artifact_version=args.target_artifact_version,
     )
     result = runtime.run_once(args.session, as_of)
     print(json.dumps(runtime_result_dict(result), default=str, sort_keys=True))

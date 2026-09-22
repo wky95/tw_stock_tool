@@ -96,6 +96,19 @@ island-quant paper-service-run --paper --once \
 移除 `--dry-run` 後會執行十個 versioned paper jobs、更新 portfolio telemetry 並產生 immutable
 paper daily report。預設沒有 strategy/model adapter，因此明確產生零個新 target；不會偷偷下單。
 
+若有經離線 promotion、完整驗證且已 pin 住所有上游 lineage 的
+`paper_target_snapshots` artifact，可顯式指定精確 SHA-256 版本：
+
+```bash
+island-quant paper-service-run --paper --once \
+  --session 2025-01-02 --as-of 2025-01-02T09:00:00+08:00 \
+  --target-artifact-version <exact-sha256> --dry-run
+```
+
+先移除 `--dry-run` 才會將 target 經 long-only／cash／exposure 風控轉成 persistent OMS
+intent。命令不接受 `latest`，不會把 exploratory artifact 自動升級成 paper candidate；artifact
+缺漏、版本／checksum／PIT session 不一致、持倉未被 target 完整涵蓋時一律 fail closed。
+
 執行前可先 dry-run；超過設定安全上限必須明確加入 `--confirm-large-run`：
 
 ```bash
@@ -214,6 +227,7 @@ ISLAND_QUANT__TRADING__INITIAL_CASH=2500000 island-quant show-config
 - [ADR 0011：Persistent paper OMS](docs/adr/0011-persistent-paper-oms.md)
 - [ADR 0012：Recoverable paper operations](docs/adr/0012-paper-operations.md)
 - [ADR 0013：Replayable paper accounting runtime](docs/adr/0013-paper-accounting-runtime.md)
+- [ADR 0014：Exact-version paper target execution](docs/adr/0014-exact-paper-target-execution.md)
 
 ## 設定安全原則
 
