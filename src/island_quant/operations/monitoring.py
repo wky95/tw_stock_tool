@@ -12,7 +12,7 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 from enum import StrEnum
 from pathlib import Path
-from typing import Protocol
+from typing import Protocol, cast
 
 
 class AlertLevel(StrEnum):
@@ -120,6 +120,16 @@ class OperationsStateStore:
                 );
                 INSERT OR IGNORE INTO service_state VALUES(1,'paper',1,'not_started',NULL,NULL);
                 CREATE TABLE IF NOT EXISTS service_starts(started_at TEXT PRIMARY KEY);
+                CREATE TABLE IF NOT EXISTS portfolio_snapshots(
+                  projection_version TEXT PRIMARY KEY,as_of TEXT NOT NULL,
+                  source_checksum TEXT NOT NULL,snapshot_checksum TEXT NOT NULL,
+                  document TEXT NOT NULL,created_at TEXT NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS current_portfolio(
+                  singleton INTEGER PRIMARY KEY CHECK(singleton=1),
+                  projection_version TEXT NOT NULL
+                    REFERENCES portfolio_snapshots(projection_version)
+                );
                 """
             )
             for name in REQUIRED_METRICS:
@@ -135,6 +145,79 @@ class OperationsStateStore:
                    value=excluded.value,updated_at=excluded.updated_at""",
                 (name, str(value), at.isoformat()),
             )
+
+    def publish_portfolio(
+        self,
+        projection_version: str,
+        source_checksum: str,
+        snapshot_checksum: str,
+        document: dict[str, object],
+        at: datetime,
+    ) -> None:
+        payload = json.dumps(document, sort_keys=True, separators=(",", ":"))
+        with self._connect() as db:
+            prior = db.execute(
+                "SELECT document FROM portfolio_snapshots WHERE projection_version=?",
+                (projection_version,),
+            ).fetchone()
+            if prior is not None and str(prior[0]) != payload:
+                raise RuntimeError("paper portfolio projection version collision")
+            db.execute(
+                "INSERT OR IGNORE INTO portfolio_snapshots VALUES(?,?,?,?,?,?)",
+                (
+                    projection_version,
+                    str(document["as_of"]),
+                    source_checksum,
+                    snapshot_checksum,
+                    payload,
+                    at.isoformat(),
+                ),
+            )
+            db.execute(
+                """INSERT INTO current_portfolio VALUES(1,?) ON CONFLICT(singleton)
+                   DO UPDATE SET projection_version=excluded.projection_version""",
+                (projection_version,),
+            )
+            for name in (
+                "cash",
+                "nav",
+                "gross_exposure",
+                "net_exposure",
+                "daily_pnl",
+                "drawdown",
+            ):
+                db.execute(
+                    """INSERT INTO metrics VALUES(?,?,?) ON CONFLICT(name) DO UPDATE SET
+                       value=excluded.value,updated_at=excluded.updated_at""",
+                    (name, str(document[name]), at.isoformat()),
+                )
+
+    def current_portfolio(self) -> dict[str, object] | None:
+        with self._connect() as db:
+            row = db.execute(
+                """SELECT p.projection_version,p.document FROM portfolio_snapshots p
+                   JOIN current_portfolio c
+                   ON c.projection_version=p.projection_version WHERE c.singleton=1"""
+            ).fetchone()
+        if row is None:
+            return None
+        document = cast(dict[str, object], json.loads(str(row[1])))
+        document["projection_version"] = str(row[0])
+        return document
+
+    def prior_portfolios(self, before: datetime) -> tuple[dict[str, object], ...]:
+        with self._connect() as db:
+            rows = db.execute(
+                """SELECT projection_version,document FROM portfolio_snapshots
+                   WHERE as_of < ? ORDER BY as_of,projection_version""",
+                (before.isoformat(),),
+            ).fetchall()
+        result: list[dict[str, object]] = []
+        for row in rows:
+            document = cast(dict[str, object], json.loads(str(row[1])))
+            document["projection_version"] = str(row[0])
+            result.append(document)
+        return tuple(result)
 
     def heartbeat(self, at: datetime) -> None:
         with self._connect() as db:

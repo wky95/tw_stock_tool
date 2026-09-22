@@ -81,6 +81,21 @@ island-quant dashboard --paper-operations
 預設仍只監聽 `127.0.0.1:8765`。UI 沒有控制 endpoint、live toggle 或 broker 連線；完整復原
 步驟見 [Paper Operations runbook](docs/PAPER_OPERATIONS_RUNBOOK.md)。
 
+Paper accounting runtime 會從 immutable OMS fills 重播 Decimal/TWD ledger，以 pinned instrument
+reference、calendar、fee 與 settlement policy 產生持久化、content-addressed portfolio snapshot。
+Pending buy cash及 sell quantity reservations 與 OMS/outbox 同 transaction 建立，fills、rejects
+與 cancellations 會原子調整或釋放 reservation。
+
+安全的單次執行模式：
+
+```bash
+island-quant paper-service-run --paper --once \
+  --session 2025-01-02 --as-of 2025-01-02T09:00:00+08:00 --dry-run
+```
+
+移除 `--dry-run` 後會執行十個 versioned paper jobs、更新 portfolio telemetry 並產生 immutable
+paper daily report。預設沒有 strategy/model adapter，因此明確產生零個新 target；不會偷偷下單。
+
 執行前可先 dry-run；超過設定安全上限必須明確加入 `--confirm-large-run`：
 
 ```bash
@@ -198,6 +213,7 @@ ISLAND_QUANT__TRADING__INITIAL_CASH=2500000 island-quant show-config
 - [ADR 0010：Exact-version real exploratory pipeline](docs/adr/0010-exact-version-exploratory-pipeline.md)
 - [ADR 0011：Persistent paper OMS](docs/adr/0011-persistent-paper-oms.md)
 - [ADR 0012：Recoverable paper operations](docs/adr/0012-paper-operations.md)
+- [ADR 0013：Replayable paper accounting runtime](docs/adr/0013-paper-accounting-runtime.md)
 
 ## 設定安全原則
 

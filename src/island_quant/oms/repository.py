@@ -25,7 +25,7 @@ class OMSPersistenceError(RuntimeError):
 
 
 class SQLiteOMSRepository:
-    schema_version = 1
+    schema_version = 2
 
     def __init__(self, path: Path, *, environment: str = "paper", timeout: float = 1.0) -> None:
         if environment != "paper":
@@ -90,6 +90,15 @@ class SQLiteOMSRepository:
                     price TEXT NOT NULL,
                     event_time TEXT NOT NULL
                 );
+                CREATE TABLE IF NOT EXISTS reservations (
+                    order_id TEXT PRIMARY KEY REFERENCES orders(order_id),
+                    side TEXT NOT NULL,
+                    instrument_id TEXT NOT NULL,
+                    reserved_cash TEXT NOT NULL,
+                    reserved_quantity INTEGER NOT NULL,
+                    original_quantity INTEGER NOT NULL,
+                    status TEXT NOT NULL
+                );
                 """
             )
             connection.execute(
@@ -146,6 +155,8 @@ class SQLiteOMSRepository:
         expected_version: int,
         filled_delta: int = 0,
         outbox: tuple[str, str, dict[str, object]] | None = None,
+        reservation: tuple[Decimal, int] | None = None,
+        release_reservation: bool = False,
     ) -> OMSOrder:
         event.verify()
         try:
@@ -215,6 +226,25 @@ class SQLiteOMSRepository:
                             json.dumps(payload, sort_keys=True, separators=(",", ":")),
                             event.received_time.isoformat(),
                         ),
+                    )
+                if reservation is not None:
+                    reserved_cash, reserved_quantity = reservation
+                    connection.execute(
+                        "INSERT INTO reservations VALUES(?,?,?,?,?,?,'active')",
+                        (
+                            order_id,
+                            current.side,
+                            current.instrument_id,
+                            str(reserved_cash),
+                            reserved_quantity,
+                            current.quantity,
+                        ),
+                    )
+                if release_reservation:
+                    connection.execute(
+                        """UPDATE reservations SET reserved_cash='0',reserved_quantity=0,
+                           status='released' WHERE order_id=? AND status='active'""",
+                        (order_id,),
                     )
                 return updated
         except sqlite3.IntegrityError as exc:
@@ -339,6 +369,22 @@ class SQLiteOMSRepository:
                 if changed.rowcount != 1:
                     raise OMSPersistenceError("optimistic concurrency update failed")
                 self._insert_event(connection, event)
+                reservation = connection.execute(
+                    "SELECT reserved_cash,reserved_quantity,original_quantity FROM reservations "
+                    "WHERE order_id=? AND status='active'",
+                    (order_id,),
+                ).fetchone()
+                if reservation is not None:
+                    remaining = current.quantity - filled
+                    original = int(reservation[2])
+                    cash = Decimal(str(reservation[0])) * remaining / original
+                    quantity_reserved = min(int(reservation[1]), remaining)
+                    status = "released" if remaining == 0 else "active"
+                    connection.execute(
+                        """UPDATE reservations SET reserved_cash=?,reserved_quantity=?,status=?
+                           WHERE order_id=?""",
+                        (str(cash), quantity_reserved, status, order_id),
+                    )
                 return updated
         except sqlite3.IntegrityError as exc:
             raise OMSPersistenceError("fill or event identity conflict") from exc
@@ -387,11 +433,50 @@ class SQLiteOMSRepository:
             rows = connection.execute("SELECT * FROM fills ORDER BY event_time,fill_id").fetchall()
         return tuple(dict(row) for row in rows)
 
+    def fills_with_orders(self) -> tuple[dict[str, Any], ...]:
+        with self._connect() as connection:
+            rows = connection.execute(
+                """SELECT f.fill_id,f.business_identity,f.order_id,f.quantity,f.price,
+                          f.event_time,o.client_order_id,o.instrument_id,o.side
+                   FROM fills f JOIN orders o ON o.order_id=f.order_id
+                   ORDER BY f.event_time,f.fill_id"""
+            ).fetchall()
+        return tuple(dict(row) for row in rows)
+
     def outbox(self) -> tuple[dict[str, Any], ...]:
         with self._connect() as connection:
             rows = connection.execute(
                 "SELECT * FROM outbox ORDER BY created_at,outbox_id"
             ).fetchall()
+        return tuple(dict(row) for row in rows)
+
+    def reserved_cash(self) -> Decimal:
+        with self._connect() as connection:
+            row = connection.execute(
+                "SELECT reserved_cash FROM reservations WHERE side='buy' AND status='active'"
+            ).fetchall()
+        return sum((Decimal(str(item[0])) for item in row), Decimal("0"))
+
+    def reserved_sell_quantity(self, instrument_id: str) -> int:
+        with self._connect() as connection:
+            row = connection.execute(
+                """SELECT reserved_quantity FROM reservations
+                   WHERE side='sell' AND instrument_id=? AND status='active'""",
+                (instrument_id,),
+            ).fetchall()
+        return sum(int(item[0]) for item in row)
+
+    def release_reservation(self, order_id: str) -> None:
+        with self._transaction() as connection:
+            connection.execute(
+                """UPDATE reservations SET reserved_cash='0',reserved_quantity=0,status='released'
+                   WHERE order_id=? AND status='active'""",
+                (order_id,),
+            )
+
+    def reservations(self) -> tuple[dict[str, Any], ...]:
+        with self._connect() as connection:
+            rows = connection.execute("SELECT * FROM reservations ORDER BY order_id").fetchall()
         return tuple(dict(row) for row in rows)
 
     def mark_outbox_delivered(self, outbox_id: str, delivered_at: datetime) -> None:

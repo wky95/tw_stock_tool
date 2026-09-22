@@ -23,6 +23,7 @@ class PaperOperationsQuery:
 
     def status(self, at: datetime) -> dict[str, object]:
         snapshot = self.state.snapshot(at, timedelta(minutes=2))
+        portfolio = self.state.current_portfolio()
         return {
             **snapshot,
             "context": DashboardContext(
@@ -50,14 +51,31 @@ class PaperOperationsQuery:
             ],
             "fills": list(self.repository.fills()),
             "jobs": list(self.scheduler.runs()),
-            "positions": [],
-            "cash_nav": {"status": "unavailable", "reason": "portfolio adapter not configured"},
+            "positions": portfolio["positions"] if portfolio is not None else [],
+            "cash_nav": (
+                {
+                    "status": "available",
+                    "cash": portfolio["cash"],
+                    "available_cash": portfolio["available_cash"],
+                    "nav": portfolio["nav"],
+                    "valuation_complete": portfolio["valuation_complete"],
+                    "as_of": portfolio["as_of"],
+                }
+                if portfolio is not None
+                else {"status": "unavailable", "reason": "portfolio projection not published"}
+            ),
             "risk": {
                 "kill_new_risk": bool(
                     snapshot["service"]["safe_mode"]  # type: ignore[index]
                 )
             },
-            "reconciliation": {"status": "not_run"},
+            "reconciliation": {
+                "status": (
+                    snapshot["metrics"]["reconciliation_mismatches"]["value"]
+                    if isinstance(snapshot["metrics"], dict)
+                    else "unavailable"
+                )
+            },
             "audit_timeline": [
                 {
                     "order_id": order.order_id,

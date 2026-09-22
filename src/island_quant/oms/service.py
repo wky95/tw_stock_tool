@@ -8,7 +8,9 @@ from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal
 
+from island_quant.backtest.policies import FeeTaxPolicy
 from island_quant.brokers.paper import DeterministicPaperBroker, PaperOrderRequest
+from island_quant.domain.models import Side
 from island_quant.oms.models import OMSEvent, OMSOrder, OMSState
 from island_quant.oms.repository import SQLiteOMSRepository
 
@@ -23,11 +25,17 @@ class PaperOrderCommand:
     estimated_price: Decimal
     available_cash: Decimal
     created_at: datetime
+    available_position: int = 0
 
 
 class PaperOMSService:
-    def __init__(self, repository: SQLiteOMSRepository) -> None:
+    def __init__(
+        self,
+        repository: SQLiteOMSRepository,
+        fee_policy: FeeTaxPolicy | None = None,
+    ) -> None:
         self.repository = repository
+        self.fee_policy = fee_policy or FeeTaxPolicy()
 
     def queue(self, command: PaperOrderCommand) -> OMSOrder:
         existing = self.repository.by_idempotency_key(command.idempotency_key)
@@ -57,9 +65,17 @@ class PaperOMSService:
         created = self._event(order, OMSState.CREATED, None, "command_accepted", "created")
         current = self.repository.create(order, created)
         current = self._transition(current, OMSState.RISK_PENDING, "risk_evaluation_started")
-        required = command.estimated_price * command.quantity
-        if command.side == "buy" and required > command.available_cash:
+        gross = command.estimated_price * command.quantity
+        estimated_fee, estimated_tax = self.fee_policy.costs(Side(command.side), gross)
+        required = gross + estimated_fee + estimated_tax
+        unreserved_cash = command.available_cash - self.repository.reserved_cash()
+        if command.side == "buy" and required > unreserved_cash:
             return self._transition(current, OMSState.RISK_REJECTED, "insufficient_cash")
+        unreserved_position = command.available_position - self.repository.reserved_sell_quantity(
+            command.instrument_id
+        )
+        if command.side == "sell" and command.quantity > unreserved_position:
+            return self._transition(current, OMSState.RISK_REJECTED, "insufficient_position")
         current = self._transition(current, OMSState.RISK_APPROVED, "paper_risk_approved")
         outbox_id = hashlib.sha256(f"submit:{command.idempotency_key}".encode()).hexdigest()
         payload = {
@@ -77,6 +93,7 @@ class PaperOMSService:
             event,
             expected_version=current.version,
             outbox=(outbox_id, "submit", payload),
+            reservation=(required if command.side == "buy" else Decimal("0"), command.quantity),
         )
 
     def process_outbox(
@@ -104,7 +121,12 @@ class PaperOMSService:
                 order = self._transition(order, OMSState.SUBMITTED, "paper_request_delivered")
             if result.status == "rejected":
                 if order.state in {OMSState.SUBMITTED, OMSState.SUBMIT_PENDING}:
-                    order = self._transition(order, OMSState.REJECTED, result.reason_code)
+                    order = self._transition(
+                        order,
+                        OMSState.REJECTED,
+                        result.reason_code,
+                        release_reservation=True,
+                    )
             else:
                 if order.state is OMSState.SUBMITTED:
                     order = self._transition(order, OMSState.ACKNOWLEDGED, result.reason_code)
@@ -150,7 +172,12 @@ class PaperOMSService:
         event = self._event(
             order, following, order.state, status, f"cancel_result:{status}", event_time=at
         )
-        return self.repository.transition(order_id, event, expected_version=order.version)
+        return self.repository.transition(
+            order_id,
+            event,
+            expected_version=order.version,
+            release_reservation=following is OMSState.CANCELLED,
+        )
 
     def request_replace(self, order_id: str, at: datetime) -> OMSOrder:
         order = self.repository.get(order_id)
@@ -188,9 +215,21 @@ class PaperOMSService:
         )
         return self.repository.transition(order_id, event, expected_version=order.version)
 
-    def _transition(self, order: OMSOrder, state: OMSState, reason: str) -> OMSOrder:
+    def _transition(
+        self,
+        order: OMSOrder,
+        state: OMSState,
+        reason: str,
+        *,
+        release_reservation: bool = False,
+    ) -> OMSOrder:
         event = self._event(order, state, order.state, reason, state.value)
-        return self.repository.transition(order.order_id, event, expected_version=order.version)
+        return self.repository.transition(
+            order.order_id,
+            event,
+            expected_version=order.version,
+            release_reservation=release_reservation,
+        )
 
     @staticmethod
     def _event(

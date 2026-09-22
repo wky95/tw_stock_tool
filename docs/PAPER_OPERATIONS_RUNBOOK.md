@@ -10,6 +10,19 @@ control in the Dashboard.
 3. Start `island-quant dashboard --paper-operations`; it binds to `127.0.0.1` by default.
 4. Readiness requires OMS integrity, startup reconciliation, a fresh heartbeat, and safe mode off.
 
+Run one pinned, idempotent operations cycle:
+
+```bash
+island-quant paper-service-run --paper --once \
+  --session 2025-01-02 --as-of 2025-01-02T09:00:00+08:00 --dry-run
+island-quant paper-service-run --paper --once \
+  --session 2025-01-02 --as-of 2025-01-02T09:00:00+08:00
+```
+
+The default files are deterministic engineering fixtures. Replace them only with pinned, validated
+paper inputs. A missing instrument reference, calendar session, fresh market event, complete mark or
+reconcilable fill causes the run to fail closed.
+
 Jobs use exact job versions, a pinned trading calendar session, a singleton lease, deterministic run
 keys, bounded retries and dead-letter state. A completed decision session is never run again.
 

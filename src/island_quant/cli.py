@@ -151,8 +151,10 @@ def build_parser() -> argparse.ArgumentParser:
     dashboard.add_argument("--port", type=int, default=8765)
     dashboard.add_argument("--reload", action="store_true")
     from island_quant.oms.cli import add_paper_parsers
+    from island_quant.operations.cli import add_runtime_parser
 
     add_paper_parsers(subparsers)
+    add_runtime_parser(subparsers)
     return parser
 
 
@@ -204,6 +206,10 @@ def main(argv: list[str] | None = None) -> int:
         return _generate_backtest_report(args, settings)
     elif args.command == "dashboard":
         return _dashboard(args, settings)
+    elif args.command == "paper-service-run":
+        from island_quant.operations.cli import run_runtime
+
+        return run_runtime(args, settings)
     elif args.command.startswith("paper-"):
         from island_quant.oms.cli import run_paper_command
 

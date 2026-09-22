@@ -17,7 +17,17 @@
 <section class="panel"><h2>Orders / fills</h2><div class="table-wrap"><table><thead><tr><th>Order</th><th>Instrument</th><th>Side</th><th>Quantity</th><th>Filled</th><th>State</th></tr></thead><tbody>
 {% for order in view.orders %}<tr><td>{{ order.order_id[:12] }}</td><td>{{ order.instrument_id }}</td><td>{{ order.side }}</td><td>{{ order.quantity }}</td><td>{{ order.filled_quantity }}</td><td>{{ order.state }}</td></tr>{% else %}<tr><td colspan="6">No paper orders</td></tr>{% endfor %}
 </tbody></table></div><p>Fill count: {{ view.fills|length }}</p></section>
-<section class="panel"><h2>Positions / cash / NAV / risk</h2><p>{{ view.cash_nav }}</p><p>Kill new risk: {{ view.risk.kill_new_risk }}</p><p>Positions: {{ view.positions|length }}</p></section>
+<section class="panel"><h2>Positions / cash / NAV / risk</h2>
+{% if view.cash_nav.status == 'available' %}<dl class="definition-grid">
+  <div><dt>Settled cash</dt><dd>{{ view.cash_nav.cash }} TWD</dd></div>
+  <div><dt>Available cash</dt><dd>{{ view.cash_nav.available_cash }} TWD</dd></div>
+  <div><dt>NAV</dt><dd>{{ view.cash_nav.nav }} TWD</dd></div>
+  <div><dt>Valuation complete</dt><dd>{{ view.cash_nav.valuation_complete }}</dd></div>
+</dl>{% else %}<p>{{ view.cash_nav.reason }}</p>{% endif %}
+<p>Kill new risk: {{ view.risk.kill_new_risk }}</p>
+<div class="table-wrap"><table><thead><tr><th>Instrument</th><th>Quantity</th></tr></thead><tbody>
+{% for position in view.positions %}<tr><td>{{ position.instrument_id }}</td><td>{{ position.quantity }}</td></tr>{% else %}<tr><td colspan="2">No positions</td></tr>{% endfor %}
+</tbody></table></div></section>
 <section class="panel"><h2>Reconciliation</h2><p>{{ view.reconciliation.status }}</p></section>
 <section class="panel"><h2>Alerts</h2><ul>{% for alert in view.alerts %}<li>{{ alert.level }} · {{ alert.category }} · {{ alert.message }} · {{ alert.status }}</li>{% else %}<li>No alerts</li>{% endfor %}</ul></section>
 <section class="panel"><h2>Audit timeline</h2><ul>{% for item in view.audit_timeline %}<li>{{ item.order_id[:12] }} — {{ item.events|join(', ') }}</li>{% else %}<li>No events</li>{% endfor %}</ul></section>

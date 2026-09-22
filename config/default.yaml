@@ -50,6 +50,8 @@ paper:
   scheduler_database_path: state/paper/scheduler.sqlite
   alert_log_path: logs/paper-alerts.jsonl
   market_fixture_path: config/paper_market.json
+  calendar_fixture_path: config/paper_calendar.json
+  instrument_fixture_path: config/paper_instruments.json
   live_trading_enabled: false
 
 logging:

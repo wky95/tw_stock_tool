@@ -115,6 +115,8 @@ class PaperSettings(BaseModel):
     scheduler_database_path: Path = Path("state/paper/scheduler.sqlite")
     alert_log_path: Path = Path("logs/paper-alerts.jsonl")
     market_fixture_path: Path = Path("config/paper_market.json")
+    calendar_fixture_path: Path = Path("config/paper_calendar.json")
+    instrument_fixture_path: Path = Path("config/paper_instruments.json")
     live_trading_enabled: bool = False
 
     @model_validator(mode="after")
