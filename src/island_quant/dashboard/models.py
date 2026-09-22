@@ -25,10 +25,10 @@ class ChartSeries(ViewModel):
 
 class DashboardContext(ViewModel):
     project_name: str = "Island Quant"
-    environment: Literal["DEMO", "ARTIFACT", "PIPELINE"] = "DEMO"
+    environment: Literal["DEMO", "ARTIFACT", "PIPELINE", "PAPER"] = "DEMO"
     banner: str = "DEMO / EXPLORATORY — NOT FOR LIVE TRADING"
     dataset_version: str
-    pit_completeness: Literal["incomplete", "validated"] = "incomplete"
+    pit_completeness: Literal["incomplete", "validated", "operational"] = "incomplete"
     last_artifact_update: datetime
     universes: tuple[str, ...]
     selected_universe: str
@@ -237,7 +237,9 @@ class SystemView(ViewModel):
 
 class HealthResponse(ViewModel):
     status: Literal["ok"] = "ok"
-    mode: Literal["demo-read-only", "artifact-read-only", "pipeline-read-only"] = "demo-read-only"
+    mode: Literal[
+        "demo-read-only", "artifact-read-only", "pipeline-read-only", "paper-read-only"
+    ] = "demo-read-only"
     live_trading_enabled: Literal[False] = False
 
 

@@ -22,6 +22,7 @@ from island_quant.dashboard.models import (
     PaginatedFactors,
     SystemView,
 )
+from island_quant.dashboard.operations import PaperOperationsQuery
 from island_quant.dashboard.pipelines import PipelineArtifactQuery
 from island_quant.storage.provenance import CodeProvenance, capture_code_provenance
 
@@ -33,11 +34,13 @@ class DashboardQueryService:
         provenance_provider: Callable[[], CodeProvenance] = capture_code_provenance,
         backtest_query: BacktestArtifactQuery | None = None,
         pipeline_query: PipelineArtifactQuery | None = None,
+        operations_query: PaperOperationsQuery | None = None,
     ) -> None:
         self.fixture = fixture or DemoDashboardFixture()
         self.provenance_provider = provenance_provider
         self.backtest_query = backtest_query
         self.pipeline_query = pipeline_query
+        self.operations_query = operations_query
 
     @property
     def artifact_mode(self) -> bool:
@@ -46,6 +49,10 @@ class DashboardQueryService:
     @property
     def pipeline_mode(self) -> bool:
         return self.pipeline_query is not None
+
+    @property
+    def operations_mode(self) -> bool:
+        return self.operations_query is not None
 
     def pipeline_context(self) -> DashboardContext:
         if self.pipeline_query is None:

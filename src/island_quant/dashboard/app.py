@@ -2,16 +2,19 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from pathlib import Path
 from typing import Annotated, Literal
 
-from fastapi import FastAPI, HTTPException, Path as PathParameter, Query, Request
+from fastapi import FastAPI, HTTPException, Query, Request
+from fastapi import Path as PathParameter
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.base import RequestResponseEndpoint
 from starlette.responses import Response
 
+from island_quant.backtest.artifacts import VERSION_PATTERN
 from island_quant.dashboard.models import (
     DataHealthView,
     DataIssuePage,
@@ -24,7 +27,6 @@ from island_quant.dashboard.models import (
     SystemView,
 )
 from island_quant.dashboard.service import DashboardQueryService
-from island_quant.backtest.artifacts import VERSION_PATTERN
 
 PACKAGE_ROOT = Path(__file__).resolve().parent
 
@@ -48,7 +50,12 @@ def create_app(service: DashboardQueryService | None = None) -> FastAPI:
         from urllib.parse import unquote
 
         raw = request.scope.get("raw_path", b"").decode("ascii", errors="ignore")
-        for prefix in ("/api/dashboard/backtests/", "/backtests/", "/api/dashboard/pipelines/", "/pipelines/"):
+        for prefix in (
+            "/api/dashboard/backtests/",
+            "/backtests/",
+            "/api/dashboard/pipelines/",
+            "/pipelines/",
+        ):
             if raw.startswith(prefix):
                 encoded_version = raw[len(prefix) :].split("/", 1)[0]
                 if not VERSION_PATTERN.fullmatch(unquote(encoded_version)):
@@ -66,7 +73,7 @@ def create_app(service: DashboardQueryService | None = None) -> FastAPI:
         )
 
     def demo_only() -> None:
-        if query.artifact_mode or query.pipeline_mode:
+        if query.artifact_mode or query.pipeline_mode or query.operations_mode:
             raise HTTPException(
                 status_code=404,
                 detail="Demo fixture endpoint is unavailable in artifact mode",
@@ -74,6 +81,13 @@ def create_app(service: DashboardQueryService | None = None) -> FastAPI:
 
     @application.get("/", response_class=HTMLResponse, include_in_schema=False)
     def overview_page(request: Request) -> HTMLResponse:
+        if query.operations_query is not None:
+            return page(
+                request,
+                "paper_operations.html",
+                query.operations_query.status(datetime.now().astimezone()),
+                "paper-operations",
+            )
         demo_only()
         return page(request, "overview.html", query.overview(), "overview")
 
@@ -87,9 +101,7 @@ def create_app(service: DashboardQueryService | None = None) -> FastAPI:
         demo_only()
         return page(request, "factors.html", query.factors(), "factors")
 
-    @application.get(
-        "/factors/{factor_id}", response_class=HTMLResponse, include_in_schema=False
-    )
+    @application.get("/factors/{factor_id}", response_class=HTMLResponse, include_in_schema=False)
     def factor_page(request: Request, factor_id: str) -> HTMLResponse:
         demo_only()
         detail = query.factor(factor_id)
@@ -130,9 +142,7 @@ def create_app(service: DashboardQueryService | None = None) -> FastAPI:
             raise HTTPException(status_code=404, detail="Unknown pipeline artifact")
         return page(request, "pipeline_status.html", query.pipeline(), "pipeline")
 
-    @application.get(
-        "/backtests/{version}", response_class=HTMLResponse, include_in_schema=False
-    )
+    @application.get("/backtests/{version}", response_class=HTMLResponse, include_in_schema=False)
     def backtest_page(
         request: Request,
         version: Annotated[str, PathParameter(pattern=r"^[0-9a-f]{64}$")],
@@ -205,9 +215,7 @@ def create_app(service: DashboardQueryService | None = None) -> FastAPI:
         demo_only()
         return query.paginated_experiments(page, page_size)
 
-    @application.get(
-        "/api/dashboard/experiments/{experiment_id}", response_model=ExperimentDetail
-    )
+    @application.get("/api/dashboard/experiments/{experiment_id}", response_model=ExperimentDetail)
     def experiment_api(experiment_id: str) -> ExperimentDetail:
         demo_only()
         detail = query.experiment(experiment_id)
@@ -219,6 +227,12 @@ def create_app(service: DashboardQueryService | None = None) -> FastAPI:
     def system_api() -> SystemView:
         demo_only()
         return query.system()
+
+    @application.get("/api/dashboard/paper-operations")
+    def paper_operations_api() -> object:
+        if query.operations_query is None:
+            raise HTTPException(status_code=404, detail="Paper operations mode is not configured")
+        return query.operations_query.status(datetime.now().astimezone())
 
     @application.get("/api/dashboard/backtests")
     def backtests_api() -> dict[str, object]:
@@ -275,9 +289,7 @@ def create_app(service: DashboardQueryService | None = None) -> FastAPI:
         version: Annotated[str, PathParameter(pattern=r"^[0-9a-f]{64}$")],
     ) -> object:
         return required(
-            query.backtest_query.attribution(version)
-            if query.backtest_query is not None
-            else None
+            query.backtest_query.attribution(version) if query.backtest_query is not None else None
         )
 
     @application.get("/api/dashboard/backtests/{version}/orders")
@@ -295,12 +307,16 @@ def create_app(service: DashboardQueryService | None = None) -> FastAPI:
     @application.get("/health", response_model=HealthResponse)
     def health() -> HealthResponse:
         mode: Literal[
-            "demo-read-only", "artifact-read-only", "pipeline-read-only"
-        ] = (
-            "pipeline-read-only"
-            if query.pipeline_mode
-            else ("artifact-read-only" if query.artifact_mode else "demo-read-only")
-        )
+            "demo-read-only", "artifact-read-only", "pipeline-read-only", "paper-read-only"
+        ]
+        if query.operations_mode:
+            mode = "paper-read-only"
+        elif query.pipeline_mode:
+            mode = "pipeline-read-only"
+        elif query.artifact_mode:
+            mode = "artifact-read-only"
+        else:
+            mode = "demo-read-only"
         return HealthResponse(mode=mode)
 
     return application

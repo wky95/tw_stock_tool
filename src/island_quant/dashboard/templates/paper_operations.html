@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Paper Operations · Island Quant{% endblock %}
+{% block content %}
+<section class="page-heading">
+  <div><p class="eyebrow">Persistent operations state</p><h1>Paper Operations</h1></div>
+  <span class="badge badge-warning">PAPER · READ ONLY · NOT LIVE</span>
+</section>
+<section class="panel"><h2>Service status</h2><dl class="definition-grid">
+  <div><dt>Safe mode</dt><dd>{{ view.service.safe_mode }}</dd></div>
+  <div><dt>Reason</dt><dd>{{ view.service.reason or 'none' }}</dd></div>
+  <div><dt>Heartbeat</dt><dd>{{ view.service.last_heartbeat or 'not started' }}</dd></div>
+  <div><dt>Heartbeat stale</dt><dd>{{ view.service.heartbeat_stale }}</dd></div>
+</dl></section>
+<section class="panel"><h2>Scheduler / jobs</h2><div class="table-wrap"><table><thead><tr><th>Job</th><th>Session</th><th>State</th><th>Attempts</th></tr></thead><tbody>
+{% for job in view.jobs %}<tr><td>{{ job.job_id }}</td><td>{{ job.session }}</td><td>{{ job.state }}</td><td>{{ job.attempts }}</td></tr>{% else %}<tr><td colspan="4">No job runs</td></tr>{% endfor %}
+</tbody></table></div></section>
+<section class="panel"><h2>Orders / fills</h2><div class="table-wrap"><table><thead><tr><th>Order</th><th>Instrument</th><th>Side</th><th>Quantity</th><th>Filled</th><th>State</th></tr></thead><tbody>
+{% for order in view.orders %}<tr><td>{{ order.order_id[:12] }}</td><td>{{ order.instrument_id }}</td><td>{{ order.side }}</td><td>{{ order.quantity }}</td><td>{{ order.filled_quantity }}</td><td>{{ order.state }}</td></tr>{% else %}<tr><td colspan="6">No paper orders</td></tr>{% endfor %}
+</tbody></table></div><p>Fill count: {{ view.fills|length }}</p></section>
+<section class="panel"><h2>Positions / cash / NAV / risk</h2><p>{{ view.cash_nav }}</p><p>Kill new risk: {{ view.risk.kill_new_risk }}</p><p>Positions: {{ view.positions|length }}</p></section>
+<section class="panel"><h2>Reconciliation</h2><p>{{ view.reconciliation.status }}</p></section>
+<section class="panel"><h2>Alerts</h2><ul>{% for alert in view.alerts %}<li>{{ alert.level }} · {{ alert.category }} · {{ alert.message }} · {{ alert.status }}</li>{% else %}<li>No alerts</li>{% endfor %}</ul></section>
+<section class="panel"><h2>Audit timeline</h2><ul>{% for item in view.audit_timeline %}<li>{{ item.order_id[:12] }} — {{ item.events|join(', ') }}</li>{% else %}<li>No events</li>{% endfor %}</ul></section>
+{% endblock %}

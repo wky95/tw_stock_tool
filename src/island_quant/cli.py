@@ -143,6 +143,7 @@ def build_parser() -> argparse.ArgumentParser:
     dashboard.add_argument("--demo", action="store_true", help="use deterministic synthetic data")
     dashboard.add_argument("--artifact-version")
     dashboard.add_argument("--pipeline-run-version")
+    dashboard.add_argument("--paper-operations", action="store_true")
     dashboard.add_argument(
         "--artifact-namespace", choices=("candidate", "demo"), default="candidate"
     )
@@ -1030,12 +1031,17 @@ def _inspect_pipeline_run(args: argparse.Namespace, settings: AppSettings) -> in
 
 def _dashboard(args: argparse.Namespace, settings: AppSettings) -> int:
     selected_modes = sum(
-        (bool(args.demo), bool(args.artifact_version), bool(args.pipeline_run_version))
+        (
+            bool(args.demo),
+            bool(args.artifact_version),
+            bool(args.pipeline_run_version),
+            bool(args.paper_operations),
+        )
     )
     if selected_modes != 1:
         print(
-            "configuration error: dashboard requires --demo, --artifact-version, or "
-            "--pipeline-run-version "
+            "configuration error: dashboard requires --demo, --artifact-version, "
+            "--pipeline-run-version, or --paper-operations "
             "(exactly one)",
             file=sys.stderr,
         )
@@ -1048,6 +1054,36 @@ def _dashboard(args: argparse.Namespace, settings: AppSettings) -> int:
     if args.demo:
         application: Any = "island_quant.dashboard.app:app"
         mode = "demo"
+    elif args.paper_operations:
+        if args.reload:
+            print(
+                "configuration error: paper operations dashboard forbids --reload", file=sys.stderr
+            )
+            return 2
+        from island_quant.dashboard.app import create_app
+        from island_quant.dashboard.operations import PaperOperationsQuery
+        from island_quant.dashboard.service import DashboardQueryService
+        from island_quant.oms.repository import SQLiteOMSRepository
+        from island_quant.operations.monitoring import OperationsStateStore
+        from island_quant.operations.scheduler import FixedClock, PaperScheduler
+
+        now = datetime.now().astimezone()
+        repository = SQLiteOMSRepository(settings.paper.oms_database_path)
+        operations = OperationsStateStore(settings.paper.operations_database_path)
+        scheduler = PaperScheduler(settings.paper.scheduler_database_path, FixedClock(now))
+        try:
+            repository.initialize()
+            operations.initialize()
+            scheduler.initialize()
+        except RuntimeError as exc:
+            print(f"paper operations error: {exc}", file=sys.stderr)
+            return 2
+        application = create_app(
+            DashboardQueryService(
+                operations_query=PaperOperationsQuery(repository, operations, scheduler)
+            )
+        )
+        mode = "PAPER operations"
     elif args.pipeline_run_version:
         if args.reload:
             print("configuration error: pipeline dashboard forbids --reload", file=sys.stderr)

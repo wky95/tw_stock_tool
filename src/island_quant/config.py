@@ -111,6 +111,9 @@ class PaperSettings(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     oms_database_path: Path = Path("state/paper/oms.sqlite")
+    operations_database_path: Path = Path("state/paper/operations.sqlite")
+    scheduler_database_path: Path = Path("state/paper/scheduler.sqlite")
+    alert_log_path: Path = Path("logs/paper-alerts.jsonl")
     market_fixture_path: Path = Path("config/paper_market.json")
     live_trading_enabled: bool = False
 

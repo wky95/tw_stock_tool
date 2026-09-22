@@ -46,6 +46,9 @@ trading:
 
 paper:
   oms_database_path: state/paper/oms.sqlite
+  operations_database_path: state/paper/operations.sqlite
+  scheduler_database_path: state/paper/scheduler.sqlite
+  alert_log_path: logs/paper-alerts.jsonl
   market_fixture_path: config/paper_market.json
   live_trading_enabled: false
 

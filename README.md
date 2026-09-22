@@ -70,6 +70,17 @@ island-quant paper-reconcile --paper
 `paper-cancel-all` 與 `paper-recover` 預設只顯示 dry-run；實際變更必須加入 `--confirm`。
 Paper fill 是工程模擬，不代表真實券商成交或投資績效。
 
+Paper Operations 加入 pinned-calendar scheduler、singleton lease、bounded retry/dead-letter、
+startup reconciliation、heartbeat、safe mode、風控 limits、持久化 alerts 與 immutable daily
+report。唯讀 operations UI：
+
+```bash
+island-quant dashboard --paper-operations
+```
+
+預設仍只監聽 `127.0.0.1:8765`。UI 沒有控制 endpoint、live toggle 或 broker 連線；完整復原
+步驟見 [Paper Operations runbook](docs/PAPER_OPERATIONS_RUNBOOK.md)。
+
 執行前可先 dry-run；超過設定安全上限必須明確加入 `--confirm-large-run`：
 
 ```bash
@@ -186,6 +197,7 @@ ISLAND_QUANT__TRADING__INITIAL_CASH=2500000 island-quant show-config
 - [ADR 0007：Leakage-safe ML baselines](docs/adr/0007-leakage-safe-ml-baselines.md)
 - [ADR 0010：Exact-version real exploratory pipeline](docs/adr/0010-exact-version-exploratory-pipeline.md)
 - [ADR 0011：Persistent paper OMS](docs/adr/0011-persistent-paper-oms.md)
+- [ADR 0012：Recoverable paper operations](docs/adr/0012-paper-operations.md)
 
 ## 設定安全原則
 
