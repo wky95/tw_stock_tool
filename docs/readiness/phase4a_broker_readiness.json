@@ -1,0 +1,71 @@
+{
+  "schema_version": 1,
+  "report_id": "phase4a-broker-production-readiness-2026-09-24",
+  "as_of": "2026-09-24T00:00:00+08:00",
+  "baseline_commit": "a4c21e12027207dd0a49ea2981f1c3032ce5b0ab",
+  "classification_vocabulary": [
+    "ready",
+    "partial",
+    "blocked",
+    "requires official verification",
+    "requires credentials/account eligibility",
+    "requires licensed data",
+    "requires operator decision"
+  ],
+  "live_trading_ready": false,
+  "broker_adapter_implemented": false,
+  "items": [
+    {"id": "domain.broker_contracts", "status": "ready", "evidence": ["src/island_quant/brokers/contracts.py"]},
+    {"id": "oms.state_machine", "status": "partial", "reason": "Persistent PAPER state machine is ready; external broker mapping and live recovery are not implemented."},
+    {"id": "oms.transactional_outbox", "status": "partial", "reason": "ACID PAPER outbox exists; no external transport dispatcher or reconcile-before-retry integration exists."},
+    {"id": "oms.idempotency_recovery", "status": "partial", "reason": "Local identities and manual unknown recovery exist; broker-side stable idempotency is unverified."},
+    {"id": "risk.reservations", "status": "partial", "reason": "Atomic PAPER cash/sell reservations exist; production buying-power semantics are unverified."},
+    {"id": "accounting.settlement", "status": "partial", "reason": "Decimal replay and versioned T+2 fixture exist; official account semantics, fees, taxes and settlement calendars require verification."},
+    {"id": "risk.gates", "status": "partial", "reason": "Long-only exposure, turnover, cash, position and volume gates exist; production tradability and account gates are missing."},
+    {"id": "operations.scheduler_monitoring_alerts", "status": "partial", "reason": "PAPER scheduler, lease, safe mode, heartbeat and persistent alerts exist; authenticated production transport and supervisor are missing."},
+    {"id": "paper.soak", "status": "ready", "scope": "offline paper engineering only"},
+    {"id": "security.configuration_secret_boundary", "status": "partial", "reason": "Live gates and secret-free credential reference exist; secret backend/rotation/revocation are operator decisions."},
+    {"id": "dashboard.read_only_telemetry", "status": "ready", "reason": "Dashboard is local/read-only with no broker controls; no readiness control page was needed."},
+    {"id": "shioaji.python_macos_arm64", "status": "requires official verification", "reason": "Official 1.7.6 metadata publishes Python >=3.7 and macOS 11 arm64 wheels; target-host runtime is untested."},
+    {"id": "shioaji.account_eligibility", "status": "requires credentials/account eligibility", "reason": "SinoPac account, signatures, API test and Trading permission are required."},
+    {"id": "shioaji.simulation", "status": "requires credentials/account eligibility", "reason": "Official simulation uses API credentials and does not support odd-lot orders."},
+    {"id": "shioaji.submit_cancel_replace_query", "status": "requires official verification", "reason": "APIs are documented; failure/race semantics need controlled verification."},
+    {"id": "shioaji.client_idempotency", "status": "blocked", "reason": "No official exactly-once or caller-controlled durable client-order-id guarantee was found."},
+    {"id": "shioaji.reconnect_lost_response", "status": "requires official verification", "reason": "Refresh and cache-health recovery exist; authoritative negative lookup and safe resubmit are unknown."},
+    {"id": "shioaji.error_taxonomy", "status": "blocked", "reason": "No comprehensive official versioned error-code catalog was found."},
+    {"id": "production_data.instrument_pit", "status": "requires licensed data"},
+    {"id": "production_data.corporate_actions", "status": "requires licensed data"},
+    {"id": "production_data.tradability_calendar", "status": "requires licensed data"},
+    {"id": "production_data.benchmark_market_cap", "status": "requires licensed data"},
+    {"id": "production_data.realtime", "status": "requires licensed data"},
+    {"id": "production_data.retention_redistribution", "status": "requires operator decision"},
+    {"id": "deployment.secret_backend", "status": "requires operator decision"},
+    {"id": "deployment.authenticated_control_plane", "status": "blocked"},
+    {"id": "deployment.process_network_clock_backup", "status": "requires operator decision"},
+    {"id": "deployment.manual_kill_two_step_enablement", "status": "blocked"},
+    {"id": "deployment.staged_capital_rollback", "status": "requires operator decision"}
+  ],
+  "operator_decisions": [
+    "Eligible cash-stock account and explicit exclusion of margin, short, SBL and day-trade-short",
+    "macOS Keychain versus approved secret manager, plus rotation/revocation ownership",
+    "Licensed market/reference-data provider and permitted retention/non-display/derived use",
+    "Deployment host, process isolation, authenticated control plane and network allowlist",
+    "Manual kill-switch owner, two-step live approval, staged-capital caps and rollback thresholds"
+  ],
+  "next_implementation_order": [
+    "Resolve official semantic unknowns and operator decisions without credentials where possible",
+    "Select and contract production data/market-data rights",
+    "Implement licensed production data adapters and PIT coverage gates",
+    "Implement secret resolver and authenticated read-only Shioaji capability probe",
+    "Implement Shioaji adapter behind BrokerSession with simulation-only credentialed verification",
+    "Run offline conformance, credentialed simulation verification and no-submit production shadow reconciliation",
+    "Design and independently approve deployment/control plane before any staged-capital proposal"
+  ],
+  "official_sources": [
+    {"retrieved_on": "2026-09-24", "version": "1.7.6", "url": "https://pypi.org/pypi/shioaji/json"},
+    {"retrieved_on": "2026-09-24", "version": "1.7.6", "url": "https://sinotrade.github.io/release/"},
+    {"retrieved_on": "2026-09-24", "version": "mutable docs", "url": "https://sinotrade.github.io/tutor/limit/"},
+    {"retrieved_on": "2026-09-24", "version": "mutable docs", "url": "https://sinotrade.github.io/tutor/order/UpdateStatus/"},
+    {"retrieved_on": "2026-09-24", "version": "mutable docs", "url": "https://www.twse.com.tw/en/products/information/use.html"}
+  ]
+}

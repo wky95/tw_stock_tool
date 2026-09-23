@@ -70,6 +70,13 @@ island-quant paper-reconcile --paper
 `paper-cancel-all` 與 `paper-recover` 預設只顯示 dry-run；實際變更必須加入 `--confirm`。
 Paper fill 是工程模擬，不代表真實券商成交或投資績效。
 
+Phase 4A 已完成 broker/production readiness audit，加入 provider-neutral broker session、
+capability negotiation、typed command/event/error/reconciliation contracts，以及完全離線的
+failure-injection conformance fixture。這些 contracts 尚未接上 PAPER runtime，也沒有 Shioaji
+adapter、SDK dependency、credential resolver 或 network transport；live trading 仍不可用。官方
+能力與未知事項見 [Shioaji capability matrix](docs/SHIOAJI_CAPABILITY_MATRIX.md)，所有未解 blocker
+見 [machine-readable readiness report](docs/readiness/phase4a_broker_readiness.json)。
+
 Paper Operations 加入 pinned-calendar scheduler、singleton lease、bounded retry/dead-letter、
 startup reconciliation、heartbeat、safe mode、風控 limits、持久化 alerts 與 immutable daily
 report。唯讀 operations UI：
@@ -259,6 +266,10 @@ ISLAND_QUANT__TRADING__INITIAL_CASH=2500000 island-quant show-config
 - [ADR 0014：Exact-version paper target execution](docs/adr/0014-exact-paper-target-execution.md)
 - [ADR 0015：Audited PAPER promotion and portfolio risk](docs/adr/0015-paper-promotion-and-portfolio-risk.md)
 - [ADR 0016：Multi-session PAPER soak and failure drills](docs/adr/0016-paper-soak-and-failure-drills.md)
+- [ADR 0017：Provider-neutral broker readiness](docs/adr/0017-broker-production-readiness.md)
+- [Broker integration readiness runbook](docs/BROKER_INTEGRATION_RUNBOOK.md)
+- [Shioaji official capability matrix](docs/SHIOAJI_CAPABILITY_MATRIX.md)
+- [Production data readiness](docs/PRODUCTION_DATA_READINESS.md)
 
 ## 設定安全原則
 
@@ -266,4 +277,6 @@ ISLAND_QUANT__TRADING__INITIAL_CASH=2500000 island-quant show-config
 - dev/test/paper/live 的 credentials 和持久化狀態必須分離。
 - 策略只輸出 target position；risk 與 OMS 可獨立拒絕訂單。
 - Broker 或本地狀態不確定時 fail closed，不重複送單、不增加新風險。
+- Broker credentials 只能由 composition root 透過 opaque reference 取得；domain/config/artifact
+  不保存 secret value。
 - 模型 promotion 需要預先門檻、paper 驗證與人工批准。
