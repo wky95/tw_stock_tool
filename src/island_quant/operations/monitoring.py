@@ -14,6 +14,8 @@ from enum import StrEnum
 from pathlib import Path
 from typing import Protocol, cast
 
+from island_quant.pipeline.artifacts import canonical_json, require_exact_version
+
 
 class AlertLevel(StrEnum):
     INFO = "info"
@@ -130,6 +132,14 @@ class OperationsStateStore:
                   projection_version TEXT NOT NULL
                     REFERENCES portfolio_snapshots(projection_version)
                 );
+                CREATE TABLE IF NOT EXISTS target_snapshots(
+                  artifact_version TEXT PRIMARY KEY,document_checksum TEXT NOT NULL,
+                  document TEXT NOT NULL,created_at TEXT NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS current_target(
+                  singleton INTEGER PRIMARY KEY CHECK(singleton=1),
+                  artifact_version TEXT NOT NULL REFERENCES target_snapshots(artifact_version)
+                );
                 """
             )
             for name in REQUIRED_METRICS:
@@ -204,6 +214,53 @@ class OperationsStateStore:
         document = cast(dict[str, object], json.loads(str(row[1])))
         document["projection_version"] = str(row[0])
         return document
+
+    def publish_target_snapshot(
+        self, artifact_version: str, document: dict[str, object], at: datetime
+    ) -> None:
+        if at.tzinfo is None or at.utcoffset() is None:
+            raise ValueError("paper target projection timestamp must be timezone-aware")
+        require_exact_version(artifact_version)
+        if document.get("artifact_version") != artifact_version:
+            raise RuntimeError("paper target projection version mismatch")
+        payload = canonical_json(document).decode()
+        checksum = hashlib.sha256(payload.encode()).hexdigest()
+        with self._connect() as db:
+            prior = db.execute(
+                "SELECT document,document_checksum FROM target_snapshots WHERE artifact_version=?",
+                (artifact_version,),
+            ).fetchone()
+            if prior is not None and (str(prior[0]) != payload or str(prior[1]) != checksum):
+                raise RuntimeError("paper target projection version collision")
+            db.execute(
+                "INSERT OR IGNORE INTO target_snapshots VALUES(?,?,?,?)",
+                (artifact_version, checksum, payload, at.isoformat()),
+            )
+            db.execute(
+                """INSERT INTO current_target VALUES(1,?) ON CONFLICT(singleton)
+                   DO UPDATE SET artifact_version=excluded.artifact_version""",
+                (artifact_version,),
+            )
+
+    def current_target_snapshot(self) -> dict[str, object] | None:
+        with self._connect() as db:
+            row = db.execute(
+                """SELECT t.artifact_version,t.document_checksum,t.document
+                   FROM target_snapshots t JOIN current_target c
+                   ON c.artifact_version=t.artifact_version WHERE c.singleton=1"""
+            ).fetchone()
+        if row is None:
+            return None
+        document = cast(dict[str, object], json.loads(str(row[2])))
+        checksum = hashlib.sha256(canonical_json(document)).hexdigest()
+        if checksum != str(row[1]) or document.get("artifact_version") != str(row[0]):
+            raise RuntimeError("paper target projection integrity check failed")
+        return document
+
+    def clear_current_target(self) -> None:
+        """Deactivate target selection without deleting immutable target history."""
+        with self._connect() as db:
+            db.execute("DELETE FROM current_target WHERE singleton=1")
 
     def prior_portfolios(self, before: datetime) -> tuple[dict[str, object], ...]:
         with self._connect() as db:

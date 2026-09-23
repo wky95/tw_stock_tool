@@ -4,10 +4,12 @@ from __future__ import annotations
 
 import hashlib
 import json
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from datetime import date, datetime
 from decimal import ROUND_FLOOR, Decimal
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 from island_quant.domain.models import Market
 from island_quant.oms.models import OMSState, PaperOrderLineage
@@ -16,6 +18,7 @@ from island_quant.oms.service import PaperOMSService, PaperOrderCommand
 from island_quant.pipeline.artifacts import ExactArtifactStore, require_exact_version
 
 ZERO = Decimal("0")
+MARKET_TIMEZONE = ZoneInfo("Asia/Taipei")
 REQUIRED_LINEAGE = frozenset(
     {
         "strategy_version",
@@ -26,6 +29,18 @@ REQUIRED_LINEAGE = frozenset(
         "target_policy_version",
         "instrument_reference_version",
         "calendar_version",
+    }
+)
+TARGET_RECORD_FIELDS = frozenset(
+    {
+        "instrument_id",
+        "market",
+        "execution_session",
+        "decision_time",
+        "available_at",
+        "target_weight",
+        "reference_price",
+        "eligible",
     }
 )
 
@@ -65,8 +80,14 @@ class PaperStrategyRiskPolicy:
     maximum_single_position: Decimal = Decimal("0.20")
     maximum_orders_per_session: int = 20
     estimated_adverse_slippage_bps: Decimal = Decimal("5")
+    minimum_cash_buffer: Decimal = Decimal("0.02")
+    maximum_turnover: Decimal = Decimal("1")
+    maximum_volume_participation: Decimal = Decimal("0.10")
+    maximum_position_count: int = 20
 
     def __post_init__(self) -> None:
+        if not self.version or self.version in {"latest", "current"}:
+            raise ValueError("paper strategy risk policy requires a pinned version")
         if self.initial_cash <= ZERO:
             raise ValueError("paper strategy initial cash must be positive")
         if not ZERO < self.maximum_gross_exposure <= Decimal("1"):
@@ -77,6 +98,14 @@ class PaperStrategyRiskPolicy:
             raise ValueError("paper order count limit must be positive")
         if self.estimated_adverse_slippage_bps < ZERO:
             raise ValueError("paper estimated slippage cannot be negative")
+        if not ZERO <= self.minimum_cash_buffer < Decimal("1"):
+            raise ValueError("paper cash buffer must be in [0, 1)")
+        if self.maximum_turnover <= ZERO:
+            raise ValueError("paper turnover limit must be positive")
+        if not ZERO < self.maximum_volume_participation <= Decimal("1"):
+            raise ValueError("paper volume participation must be in (0, 1]")
+        if self.maximum_position_count < 1:
+            raise ValueError("paper position count limit must be positive")
 
 
 class ExactPaperTargetReader:
@@ -109,36 +138,22 @@ class ExactPaperTargetReader:
         missing = REQUIRED_LINEAGE - lineage.keys()
         if missing:
             raise RuntimeError(f"paper target lineage is incomplete: {','.join(sorted(missing))}")
-        targets: list[PaperTarget] = []
-        seen: set[str] = set()
+        records: list[dict[str, object]] = []
         for batch in self.store.batches(version):
-            for raw in batch.records:
-                target = self._target(raw)
-                if target.execution_session != session:
-                    raise RuntimeError("paper target execution session mismatch")
-                if target.decision_time.date() >= target.execution_session:
-                    raise RuntimeError("paper target must execute after its decision session")
-                if target.available_at > target.decision_time or target.decision_time > as_of:
-                    raise RuntimeError("paper target violates point-in-time availability")
-                if not target.eligible:
-                    raise RuntimeError(
-                        "ineligible instrument is forbidden in paper target artifact"
-                    )
-                if target.instrument_key in seen:
-                    raise RuntimeError("duplicate instrument in paper target artifact")
-                seen.add(target.instrument_key)
-                targets.append(target)
-        if not targets:
-            raise RuntimeError("paper target artifact contains no targets")
-        if len({item.decision_time for item in targets}) != 1:
-            raise RuntimeError("paper target artifact mixes decision times")
-        total = sum((item.target_weight for item in targets), ZERO)
-        if total > Decimal("1"):
-            raise RuntimeError("paper target weights exceed long-only capital")
-        return PaperTargetSnapshot(version, manifest.lineage, tuple(sorted(targets, key=_key)))
+            records.extend(batch.records)
+        targets = validate_paper_target_records(records, session=session, as_of=as_of)
+        return PaperTargetSnapshot(version, manifest.lineage, targets)
 
-    @staticmethod
-    def _target(raw: dict[str, object]) -> PaperTarget:
+def validate_paper_target_records(
+    records: Iterable[Mapping[str, object]], *, session: date, as_of: datetime
+) -> tuple[PaperTarget, ...]:
+    if as_of.tzinfo is None or as_of.utcoffset() is None:
+        raise ValueError("paper target validation timestamp must be timezone-aware")
+    targets: list[PaperTarget] = []
+    seen: set[str] = set()
+    for raw in records:
+        if raw.keys() != TARGET_RECORD_FIELDS:
+            raise RuntimeError("paper target record schema is invalid")
         try:
             eligible = raw["eligible"]
             if not isinstance(eligible, bool):
@@ -163,7 +178,28 @@ class ExactPaperTargetReader:
             raise RuntimeError("paper targets must be long-only weights in [0, 1]")
         if target.reference_price <= ZERO:
             raise RuntimeError("paper target reference price must be positive")
-        return target
+        if target.execution_session != session:
+            raise RuntimeError("paper target execution session mismatch")
+        if target.decision_time.astimezone(MARKET_TIMEZONE).date() >= (
+            target.execution_session
+        ):
+            raise RuntimeError("paper target must execute after its decision session")
+        if target.available_at > target.decision_time or target.decision_time > as_of:
+            raise RuntimeError("paper target violates point-in-time availability")
+        if not target.eligible:
+            raise RuntimeError("ineligible instrument is forbidden in paper target artifact")
+        if target.instrument_key in seen:
+            raise RuntimeError("duplicate instrument in paper target artifact")
+        seen.add(target.instrument_key)
+        targets.append(target)
+    if not targets:
+        raise RuntimeError("paper target artifact contains no targets")
+    if len({item.decision_time for item in targets}) != 1:
+        raise RuntimeError("paper target artifact mixes decision times")
+    total = sum((item.target_weight for item in targets), ZERO)
+    if total > Decimal("1"):
+        raise RuntimeError("paper target weights exceed long-only capital")
+    return tuple(sorted(targets, key=_key))
 
 
 class PaperTargetExecutor:
@@ -175,12 +211,14 @@ class PaperTargetExecutor:
         service: PaperOMSService,
         instrument_markets: dict[str, Market],
         execution_prices: dict[str, Decimal],
+        execution_volumes: dict[str, int],
         policy: PaperStrategyRiskPolicy | None = None,
     ) -> None:
         self.oms = oms
         self.service = service
         self.instrument_markets = instrument_markets
         self.execution_prices = execution_prices
+        self.execution_volumes = execution_volumes
         self.policy = policy or PaperStrategyRiskPolicy()
 
     def execute(
@@ -200,6 +238,8 @@ class PaperTargetExecutor:
             for item in snapshot.targets
         ):
             raise RuntimeError("paper target single-position limit exceeded")
+        if gross > Decimal("1") - self.policy.minimum_cash_buffer:
+            raise RuntimeError("paper target minimum cash buffer violated")
         nav, available_cash, positions = self._portfolio(portfolio)
         target_keys = {item.instrument_key for item in snapshot.targets}
         missing_targets = positions.keys() - target_keys
@@ -231,6 +271,11 @@ class PaperTargetExecutor:
                 continue
             side = "buy" if delta > 0 else "sell"
             quantity = abs(delta)
+            volume = self.execution_volumes.get(target.instrument_id)
+            if volume is None or volume <= 0:
+                raise RuntimeError("paper target lacks positive pinned execution volume")
+            if Decimal(quantity) / Decimal(volume) > self.policy.maximum_volume_participation:
+                raise RuntimeError("paper target volume participation limit exceeded")
             identity = {
                 "artifact_version": snapshot.artifact_version,
                 "execution_session": target.execution_session.isoformat(),
@@ -292,6 +337,21 @@ class PaperTargetExecutor:
             for key, quantity in desired_positions.items()
         ):
             raise RuntimeError("projected paper single-position limit exceeded")
+        if sum(quantity > 0 for quantity in desired_positions.values()) > (
+            self.policy.maximum_position_count
+        ):
+            raise RuntimeError("projected paper position count limit exceeded")
+        turnover = sum(
+            (
+                Decimal(abs(desired_positions[key] - projected.get(key, 0)))
+                * self.execution_prices[_symbol(key)]
+                / nav
+                for key in desired_positions
+            ),
+            ZERO,
+        )
+        if turnover > self.policy.maximum_turnover:
+            raise RuntimeError("projected paper turnover limit exceeded")
         session_order_count = sum(
             order.created_at.date() == snapshot.targets[0].execution_session
             for order in self.oms.list_orders()
@@ -353,3 +413,24 @@ def _symbol(instrument_key: str) -> str:
     except ValueError as exc:
         raise RuntimeError("paper position instrument key is malformed") from exc
     return symbol
+
+
+def paper_target_snapshot_document(snapshot: PaperTargetSnapshot) -> dict[str, object]:
+    return {
+        "schema_version": 1,
+        "artifact_version": snapshot.artifact_version,
+        "lineage": snapshot.lineage,
+        "decision_time": snapshot.targets[0].decision_time.isoformat(),
+        "execution_session": snapshot.targets[0].execution_session.isoformat(),
+        "targets": [
+            {
+                "instrument_id": item.instrument_id,
+                "instrument_key": item.instrument_key,
+                "market": item.market.value,
+                "target_weight": str(item.target_weight),
+                "reference_price": str(item.reference_price),
+                "available_at": item.available_at.isoformat(),
+            }
+            for item in snapshot.targets
+        ],
+    }

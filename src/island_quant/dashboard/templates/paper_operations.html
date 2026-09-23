@@ -28,6 +28,18 @@
 <div class="table-wrap"><table><thead><tr><th>Instrument</th><th>Quantity</th></tr></thead><tbody>
 {% for position in view.positions %}<tr><td>{{ position.instrument_id }}</td><td>{{ position.quantity }}</td></tr>{% else %}<tr><td colspan="2">No positions</td></tr>{% endfor %}
 </tbody></table></div></section>
+<section class="panel"><h2>Target / actual tracking</h2>
+{% if view.target_tracking.status == 'unavailable' %}<p>{{ view.target_tracking.reason }}</p>{% else %}
+<dl class="definition-grid">
+  <div><dt>Target artifact</dt><dd>{{ view.target_tracking.artifact_version[:12] }}</dd></div>
+  <div><dt>Decision time</dt><dd>{{ view.target_tracking.decision_time }}</dd></div>
+  <div><dt>Execution session</dt><dd>{{ view.target_tracking.execution_session }}</dd></div>
+  <div><dt>Valuation status</dt><dd>{{ view.target_tracking.status }}</dd></div>
+  <div><dt>Total absolute drift</dt><dd>{{ view.target_tracking.total_absolute_drift or 'unavailable' }}</dd></div>
+</dl>
+<div class="table-wrap"><table><thead><tr><th>Instrument</th><th>Target weight</th><th>Actual weight</th><th>Drift</th><th>Quantity</th><th>Mark</th></tr></thead><tbody>
+{% for item in view.target_tracking.rows %}<tr><td>{{ item.instrument_id }}</td><td>{{ item.target_weight }}</td><td>{{ item.actual_weight or 'unavailable' }}</td><td>{{ item.drift or 'unavailable' }}</td><td>{{ item.actual_quantity }}</td><td>{{ item.mark or 'unavailable' }}</td></tr>{% endfor %}
+</tbody></table></div>{% endif %}</section>
 <section class="panel"><h2>Reconciliation</h2><p>{{ view.reconciliation.status }}</p></section>
 <section class="panel"><h2>Alerts</h2><ul>{% for alert in view.alerts %}<li>{{ alert.level }} · {{ alert.category }} · {{ alert.message }} · {{ alert.status }}</li>{% else %}<li>No alerts</li>{% endfor %}</ul></section>
 <section class="panel"><h2>Audit timeline</h2><ul>{% for item in view.audit_timeline %}<li>{{ item.order_id[:12] }} — {{ item.events|join(', ') }}</li>{% else %}<li>No events</li>{% endfor %}</ul></section>

@@ -53,6 +53,12 @@ paper:
   calendar_fixture_path: config/paper_calendar.json
   instrument_fixture_path: config/paper_instruments.json
   live_trading_enabled: false
+  strategy_risk_policy_version: paper-target-risk-v1
+  minimum_cash_buffer: "0.05"
+  maximum_turnover: "1.0"
+  maximum_volume_participation: "0.10"
+  maximum_position_count: 20
+  estimated_adverse_slippage_bps: "5"
 
 logging:
   level: INFO

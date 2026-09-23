@@ -118,6 +118,12 @@ class PaperSettings(BaseModel):
     calendar_fixture_path: Path = Path("config/paper_calendar.json")
     instrument_fixture_path: Path = Path("config/paper_instruments.json")
     live_trading_enabled: bool = False
+    strategy_risk_policy_version: str = "paper-target-risk-v1"
+    minimum_cash_buffer: Decimal = Field(default=Decimal("0.05"), ge=0, lt=1)
+    maximum_turnover: Decimal = Field(default=Decimal("1"), gt=0)
+    maximum_volume_participation: Decimal = Field(default=Decimal("0.10"), gt=0, le=1)
+    maximum_position_count: int = Field(default=20, gt=0)
+    estimated_adverse_slippage_bps: Decimal = Field(default=Decimal("5"), ge=0)
 
     @model_validator(mode="after")
     def forbid_live(self) -> PaperSettings:

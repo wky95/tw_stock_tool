@@ -109,6 +109,21 @@ island-quant paper-service-run --paper --once \
 intent。命令不接受 `latest`，不會把 exploratory artifact 自動升級成 paper candidate；artifact
 缺漏、版本／checksum／PIT session 不一致、持倉未被 target 完整涵蓋時一律 fail closed。
 
+Validated research target 必須先經顯式 PAPER promotion；預設 dry-run 不寫入任何 artifact：
+
+```bash
+island-quant paper-promote-target --paper \
+  --source-version <exact-research-target-sha256> \
+  --reviewer local-operator --reason "offline review passed" \
+  --approved-at 2025-01-01T18:00:00+08:00 --execution-session 2025-01-02 \
+  --approve-pit --approve-data-license --approve-risk --dry-run
+```
+
+核對輸出後將 `--dry-run` 改為 `--confirm`，才會建立 immutable approval 與 paper target
+artifacts。三項 checklist 缺一、來源為 exploratory、核准晚於 execution session 或 lineage
+不完整時都會拒絕。Paper Operations Dashboard 會以 reconciled marks 唯讀顯示 target／actual
+weight、drift 與 exact artifact version。
+
 執行前可先 dry-run；超過設定安全上限必須明確加入 `--confirm-large-run`：
 
 ```bash
@@ -228,6 +243,7 @@ ISLAND_QUANT__TRADING__INITIAL_CASH=2500000 island-quant show-config
 - [ADR 0012：Recoverable paper operations](docs/adr/0012-paper-operations.md)
 - [ADR 0013：Replayable paper accounting runtime](docs/adr/0013-paper-accounting-runtime.md)
 - [ADR 0014：Exact-version paper target execution](docs/adr/0014-exact-paper-target-execution.md)
+- [ADR 0015：Audited PAPER promotion and portfolio risk](docs/adr/0015-paper-promotion-and-portfolio-risk.md)
 
 ## 設定安全原則
 

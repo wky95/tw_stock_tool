@@ -22,9 +22,11 @@ from island_quant.operations.monitoring import (
 from island_quant.operations.reports import PaperDailyReport, write_daily_report
 from island_quant.operations.scheduler import STANDARD_JOBS, PaperScheduler, RunState
 from island_quant.operations.strategy import (
+    MARKET_TIMEZONE,
     ExactPaperTargetReader,
     PaperTargetExecutor,
     PaperTargetSnapshot,
+    paper_target_snapshot_document,
 )
 
 
@@ -126,7 +128,8 @@ class PaperRuntime:
         eligible = [
             item.event_time
             for item in self.market
-            if item.event_time <= as_of and item.event_time.date() == session_date
+            if item.event_time <= as_of
+            and item.event_time.astimezone(MARKET_TIMEZONE).date() == session_date
         ]
         if not eligible:
             raise RuntimeError("no pinned market event is available for the execution session")
@@ -174,12 +177,18 @@ class PaperRuntime:
 
     def _decision_snapshot(self, session: str, as_of: datetime) -> None:
         if self.target_reader is None or self.target_artifact_version is None:
+            self.state.clear_current_target()
             self.state.metric("last_successful_decision", "no_strategy_configured", as_of)
             return
         self.target_snapshot = self.target_reader.read(
             self.target_artifact_version,
             session=datetime.fromisoformat(session).date(),
             as_of=as_of,
+        )
+        self.state.publish_target_snapshot(
+            self.target_snapshot.artifact_version,
+            paper_target_snapshot_document(self.target_snapshot),
+            as_of,
         )
         self.state.metric("last_successful_decision", self.target_snapshot.artifact_version, as_of)
 

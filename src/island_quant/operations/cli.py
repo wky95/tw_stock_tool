@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from dataclasses import asdict
 from datetime import date, datetime
 from decimal import Decimal
 
@@ -24,9 +25,15 @@ from island_quant.operations.accounting import (
     PaperMark,
 )
 from island_quant.operations.monitoring import OperationsStateStore
+from island_quant.operations.promotion import PaperPromotionRequest, PaperTargetPromoter
 from island_quant.operations.runtime import PaperRuntime, runtime_result_dict
 from island_quant.operations.scheduler import FixedClock, PaperScheduler
-from island_quant.operations.strategy import ExactPaperTargetReader, PaperTargetExecutor
+from island_quant.operations.strategy import (
+    MARKET_TIMEZONE,
+    ExactPaperTargetReader,
+    PaperStrategyRiskPolicy,
+    PaperTargetExecutor,
+)
 
 
 def add_runtime_parser(
@@ -39,6 +46,45 @@ def add_runtime_parser(
     parser.add_argument("--as-of", required=True)
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--target-artifact-version")
+    promotion = subparsers.add_parser("paper-promote-target")
+    promotion.add_argument("--paper", action="store_true", required=True)
+    promotion.add_argument("--source-version", required=True)
+    promotion.add_argument("--reviewer", required=True)
+    promotion.add_argument("--reason", required=True)
+    promotion.add_argument("--approved-at", required=True)
+    promotion.add_argument("--execution-session", required=True)
+    promotion.add_argument("--approve-pit", action="store_true")
+    promotion.add_argument("--approve-data-license", action="store_true")
+    promotion.add_argument("--approve-risk", action="store_true")
+    promotion.add_argument("--dry-run", action="store_true")
+    promotion.add_argument("--confirm", action="store_true")
+
+
+def run_promotion(args: argparse.Namespace, settings: AppSettings) -> int:
+    try:
+        if args.dry_run and args.confirm:
+            raise ValueError("paper promotion accepts either --dry-run or --confirm")
+        if not args.dry_run and not args.confirm:
+            print("paper promotion error: use --dry-run or --confirm", file=sys.stderr)
+            return 2
+        request = PaperPromotionRequest(
+            args.source_version,
+            args.reviewer,
+            args.reason,
+            datetime.fromisoformat(args.approved_at),
+            date.fromisoformat(args.execution_session),
+            args.approve_pit,
+            args.approve_data_license,
+            args.approve_risk,
+        )
+        result = PaperTargetPromoter(settings.research.artifact_root).promote(
+            request, dry_run=bool(args.dry_run)
+        )
+    except (OSError, ValueError, KeyError, TypeError, RuntimeError) as exc:
+        print(f"paper promotion error: {exc}", file=sys.stderr)
+        return 2
+    print(json.dumps(asdict(result), default=str, sort_keys=True))
+    return 0
 
 
 def run_runtime(args: argparse.Namespace, settings: AppSettings) -> int:
@@ -127,7 +173,7 @@ def _run_runtime(args: argparse.Namespace, settings: AppSettings) -> int:
         tuple(
             PaperMark(
                 item.instrument_id,
-                item.event_time.date(),
+                item.event_time.astimezone(MARKET_TIMEZONE).date(),
                 item.reference_price,
                 item.event_time,
                 "pinned_paper_market_event",
@@ -142,6 +188,22 @@ def _run_runtime(args: argparse.Namespace, settings: AppSettings) -> int:
             service,
             {item.instrument_id: item.market for item in instruments},
             {item.instrument_id: item.reference_price for item in market},
+            {item.instrument_id: item.volume for item in market},
+            PaperStrategyRiskPolicy(
+                version=settings.paper.strategy_risk_policy_version,
+                initial_cash=settings.trading.initial_cash,
+                maximum_gross_exposure=settings.trading.maximum_gross_exposure,
+                maximum_single_position=settings.trading.maximum_position_weight,
+                estimated_adverse_slippage_bps=(
+                    settings.paper.estimated_adverse_slippage_bps
+                ),
+                minimum_cash_buffer=settings.paper.minimum_cash_buffer,
+                maximum_turnover=settings.paper.maximum_turnover,
+                maximum_volume_participation=(
+                    settings.paper.maximum_volume_participation
+                ),
+                maximum_position_count=settings.paper.maximum_position_count,
+            ),
         )
         if target_reader is not None
         else None

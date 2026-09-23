@@ -8,12 +8,16 @@ from decimal import Decimal
 from pathlib import Path
 
 import pytest
+from fastapi.testclient import TestClient
 
 from island_quant.brokers.paper import (
     DeterministicPaperBroker,
     PaperBrokerPolicy,
     PaperMarketEvent,
 )
+from island_quant.dashboard.app import create_app
+from island_quant.dashboard.operations import PaperOperationsQuery
+from island_quant.dashboard.service import DashboardQueryService
 from island_quant.domain.models import Market
 from island_quant.oms.models import OMSState
 from island_quant.oms.repository import OMSPersistenceError, SQLiteOMSRepository
@@ -32,6 +36,7 @@ from island_quant.operations.strategy import (
     ExactPaperTargetReader,
     PaperStrategyRiskPolicy,
     PaperTargetExecutor,
+    paper_target_snapshot_document,
 )
 from island_quant.pipeline.artifacts import ExactArtifactStore
 
@@ -100,6 +105,7 @@ def executor(oms: SQLiteOMSRepository) -> PaperTargetExecutor:
         PaperOMSService(oms),
         {"2330": Market.TWSE},
         {"2330": Decimal("10")},
+        {"2330": 1000000},
     )
 
 
@@ -164,6 +170,14 @@ def test_reader_detects_duplicates_and_cas_tampering(tmp_path: Path) -> None:
         reader.read(clean, session=SESSIONS[0], as_of=NOW)
 
 
+def test_reader_rejects_unknown_record_fields(tmp_path: Path) -> None:
+    bad = record()
+    bad["unexpected"] = "ambiguous"
+    version = publish(tmp_path, [bad])
+    with pytest.raises(RuntimeError, match="schema"):
+        ExactPaperTargetReader(tmp_path).read(version, session=SESSIONS[0], as_of=NOW)
+
+
 def test_target_execution_is_integer_idempotent_reserved_and_lineaged(tmp_path: Path) -> None:
     version = publish(tmp_path)
     snapshot = ExactPaperTargetReader(tmp_path).read(version, session=SESSIONS[0], as_of=NOW)
@@ -226,7 +240,11 @@ def test_target_execution_fails_closed_on_reference_and_risk_mismatch(tmp_path: 
         publish(tmp_path, [record(weight="0.10")]), session=SESSIONS[0], as_of=NOW
     )
     wrong_price = PaperTargetExecutor(
-        oms, PaperOMSService(oms), {"2330": Market.TWSE}, {"2330": Decimal("9")}
+        oms,
+        PaperOMSService(oms),
+        {"2330": Market.TWSE},
+        {"2330": Decimal("9")},
+        {"2330": 1000000},
     )
     with pytest.raises(RuntimeError, match="execution price"):
         wrong_price.execute(safe, None, created_at=NOW)
@@ -306,7 +324,11 @@ def test_runtime_executes_exact_target_through_report_lineage(tmp_path: Path) ->
         market,
         target_reader=ExactPaperTargetReader(tmp_path / "artifacts"),
         target_executor=PaperTargetExecutor(
-            oms, service, {"2330": Market.TWSE}, {"2330": Decimal("10")}
+            oms,
+            service,
+            {"2330": Market.TWSE},
+            {"2330": Decimal("10")},
+            {"2330": 100000},
         ),
         target_artifact_version=version,
     )
@@ -324,6 +346,57 @@ def test_runtime_executes_exact_target_through_report_lineage(tmp_path: Path) ->
     assert dict(report["lineage"])["model_artifact_version"] == lineage()[
         "model_artifact_version"
     ]
+    persisted_target = state.current_target_snapshot()
+    assert persisted_target is not None
+    assert persisted_target["artifact_version"] == version
+    app = create_app(
+        DashboardQueryService(
+            operations_query=PaperOperationsQuery(oms, state, scheduler)
+        )
+    )
+    client = TestClient(app)
+    tracking = client.get("/api/dashboard/paper-operations").json()["target_tracking"]
+    assert tracking["status"] == "available"
+    assert tracking["artifact_version"] == version
+    assert tracking["rows"][0]["target_weight"] == "0.10"
+    assert tracking["rows"][0]["actual_quantity"] == 10000
+    assert "Target / actual tracking" in client.get("/").text
+
+
+def test_persisted_target_snapshot_detects_tampering(tmp_path: Path) -> None:
+    oms = repository(tmp_path)
+    state = OperationsStateStore(tmp_path / "operations.sqlite")
+    state.initialize()
+    snapshot = ExactPaperTargetReader(tmp_path).read(
+        publish(tmp_path), session=SESSIONS[0], as_of=NOW
+    )
+    state.publish_target_snapshot(
+        snapshot.artifact_version, paper_target_snapshot_document(snapshot), NOW
+    )
+    with sqlite3.connect(state.path) as connection:
+        connection.execute(
+            "UPDATE target_snapshots SET document='{}' WHERE artifact_version=?",
+            (snapshot.artifact_version,),
+        )
+    with pytest.raises(RuntimeError, match="integrity"):
+        state.current_target_snapshot()
+    assert oms.list_orders() == ()
+
+
+def test_current_target_can_be_deactivated_without_deleting_history(tmp_path: Path) -> None:
+    state = OperationsStateStore(tmp_path / "operations.sqlite")
+    state.initialize()
+    snapshot = ExactPaperTargetReader(tmp_path).read(
+        publish(tmp_path), session=SESSIONS[0], as_of=NOW
+    )
+    state.publish_target_snapshot(
+        snapshot.artifact_version, paper_target_snapshot_document(snapshot), NOW
+    )
+    state.clear_current_target()
+    assert state.current_target_snapshot() is None
+    with sqlite3.connect(state.path) as connection:
+        count = connection.execute("SELECT COUNT(*) FROM target_snapshots").fetchone()[0]
+    assert count == 1
 
 
 def test_runtime_constructor_requires_complete_strategy_wiring(tmp_path: Path) -> None:
@@ -351,3 +424,45 @@ def test_risk_policy_is_versioned_and_rejects_unsafe_values() -> None:
     assert PaperStrategyRiskPolicy().version == "paper-target-risk-v1"
     with pytest.raises(ValueError):
         PaperStrategyRiskPolicy(maximum_gross_exposure=Decimal("1.1"))
+
+
+def test_liquidity_turnover_and_cash_buffer_fail_before_oms_write(tmp_path: Path) -> None:
+    snapshot = ExactPaperTargetReader(tmp_path).read(
+        publish(tmp_path), session=SESSIONS[0], as_of=NOW
+    )
+    oms = repository(tmp_path)
+    thin = PaperTargetExecutor(
+        oms,
+        PaperOMSService(oms),
+        {"2330": Market.TWSE},
+        {"2330": Decimal("10")},
+        {"2330": 99999},
+    )
+    with pytest.raises(RuntimeError, match="volume participation"):
+        thin.execute(snapshot, None, created_at=NOW)
+    assert oms.list_orders() == ()
+    turnover = PaperTargetExecutor(
+        oms,
+        PaperOMSService(oms),
+        {"2330": Market.TWSE},
+        {"2330": Decimal("10")},
+        {"2330": 1000000},
+        PaperStrategyRiskPolicy(maximum_turnover=Decimal("0.05")),
+    )
+    with pytest.raises(RuntimeError, match="turnover"):
+        turnover.execute(snapshot, None, created_at=NOW)
+    assert oms.list_orders() == ()
+    concentrated = ExactPaperTargetReader(tmp_path).read(
+        publish(tmp_path, [record(weight="0.99")]), session=SESSIONS[0], as_of=NOW
+    )
+    cash_buffer = PaperTargetExecutor(
+        oms,
+        PaperOMSService(oms),
+        {"2330": Market.TWSE},
+        {"2330": Decimal("10")},
+        {"2330": 1000000},
+        PaperStrategyRiskPolicy(maximum_single_position=Decimal("1")),
+    )
+    with pytest.raises(RuntimeError, match="cash buffer"):
+        cash_buffer.execute(concentrated, None, created_at=NOW)
+    assert oms.list_orders() == ()
