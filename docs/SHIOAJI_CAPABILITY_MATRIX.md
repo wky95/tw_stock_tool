@@ -59,3 +59,18 @@ authority; event and identifier uniqueness scope across reconnect/day/account; c
 mapping; production cancel/replace/fill race semantics; session/token expiry; maintenance windows and
 SLA; retained query horizon; certificate rotation without interruption; data retention and derived
 use rights. These must not be guessed.
+
+## Phase 4B semantic closure
+
+The official 1.7.6 status documentation now gives a precise minimum baseline: immediately after a
+new login the local trade list is empty; call `update_status` to fetch the day's orders. Cache health
+separately exposes `NoBaseline`, `SequenceGap`, `PendingReport`, `UntrackableEventId` and
+`ProjectionFailed`. Official callback documentation says identical `event_id` means a duplicate,
+the trailing sequence can expose a possible gap, and a deal may arrive before its order event.
+
+This closes only the shape of a conservative same-day reconciliation procedure. It does not make an
+empty refreshed result an authoritative negative lookup, define identifier scope across account/day/
+reconnect, specify historical retention, settle cancel/replace/fill races, document token expiry or
+provide a complete error/deprecation policy. All eight reviewed questions, evidence and remaining
+unknowns are recorded in
+[`readiness/shioaji_semantic_evidence.json`](readiness/shioaji_semantic_evidence.json).

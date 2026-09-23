@@ -50,3 +50,20 @@ substitute for announcement time.
    window plus unexpected-event drills.
 6. Promote the new provider only by explicit configuration version and operator approval. Retain a
    rollback path, but never silently fall back to an unlicensed or stale source in production.
+
+## Phase 4B closure
+
+Provider-neutral production contracts and a fully offline conformance harness now exist in
+`island_quant.data.production`. They cover PIT instrument identity, revisions, tradability, official
+calendar changes, benchmark/market cap, stream health, entitlement, retention, coverage and
+provider reconciliation. These contracts do not make FinMind or any candidate production-ready.
+
+The acceptance matrix requires 100% record and required-field coverage for the admitted critical
+scope, zero unexplained provider disagreements, zero unresolved sequence gaps, zero unknown
+tradability decisions and zero silent fallbacks. Numeric latency/history values remain operator and
+provider contract inputs. See:
+
+- [Production data integration runbook](PRODUCTION_DATA_INTEGRATION_RUNBOOK.md)
+- [Provider evaluation and license questionnaire](PROVIDER_EVALUATION_AND_LICENSE_QUESTIONNAIRE.md)
+- [Machine-readable requirements](readiness/production_data_requirements.json)
+- [Phase 4B readiness](readiness/phase4b_production_readiness.json)

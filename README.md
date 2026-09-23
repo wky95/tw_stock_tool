@@ -77,6 +77,14 @@ adapter、SDK dependency、credential resolver 或 network transport；live trad
 能力與未知事項見 [Shioaji capability matrix](docs/SHIOAJI_CAPABILITY_MATRIX.md)，所有未解 blocker
 見 [machine-readable readiness report](docs/readiness/phase4a_broker_readiness.json)。
 
+Phase 4B 已加入 provider-neutral production-data contracts 與完全離線 conformance harness，
+涵蓋 PIT identity/revision、tradability/calendar、benchmark、市值、stream freshness/sequence、
+entitlement/retention、coverage 與 provider reconciliation。另保存 Shioaji 官方語意證據、資料
+授權／provider 評估模板及 secret/control-plane/deployment policy schemas。這些全是 design 與
+offline fixtures：沒有選擇或連接資料商、沒有 secret backend、broker adapter、credentials、
+部署、控制 endpoint 或 live toggle。見
+[Phase 4B readiness](docs/readiness/phase4b_production_readiness.json)。
+
 Paper Operations 加入 pinned-calendar scheduler、singleton lease、bounded retry/dead-letter、
 startup reconciliation、heartbeat、safe mode、風控 limits、持久化 alerts 與 immutable daily
 report。唯讀 operations UI：
@@ -270,6 +278,10 @@ ISLAND_QUANT__TRADING__INITIAL_CASH=2500000 island-quant show-config
 - [Broker integration readiness runbook](docs/BROKER_INTEGRATION_RUNBOOK.md)
 - [Shioaji official capability matrix](docs/SHIOAJI_CAPABILITY_MATRIX.md)
 - [Production data readiness](docs/PRODUCTION_DATA_READINESS.md)
+- [ADR 0018：Production data and semantic closure](docs/adr/0018-production-data-semantic-closure.md)
+- [Production data integration runbook](docs/PRODUCTION_DATA_INTEGRATION_RUNBOOK.md)
+- [Provider evaluation and license questionnaire](docs/PROVIDER_EVALUATION_AND_LICENSE_QUESTIONNAIRE.md)
+- [Security and deployment design](docs/SECURITY_DEPLOYMENT_DESIGN.md)
 
 ## 設定安全原則
 

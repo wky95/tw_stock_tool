@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "template": true,
+  "provider_name": "UNKNOWN",
+  "product_name": "UNKNOWN",
+  "evidence_as_of": "YYYY-MM-DD",
+  "official_or_contract_sources": [],
+  "evaluation": {
+    "field_coverage": "UNKNOWN",
+    "latency_sla": "UNKNOWN",
+    "history_depth": "UNKNOWN",
+    "pit_announcement_and_revision_support": "UNKNOWN",
+    "identifier_change_and_delisting_support": "UNKNOWN",
+    "unexpected_closure_and_tradability_support": "UNKNOWN",
+    "sequence_gap_and_recovery_support": "UNKNOWN",
+    "correction_and_deletion_notices": "UNKNOWN",
+    "target_host_and_process_rights": "UNKNOWN",
+    "non_display_algorithmic_trading_rights": "UNKNOWN",
+    "storage_retention_backup_restore_rights": "UNKNOWN",
+    "derived_data_and_model_artifact_rights": "UNKNOWN",
+    "audit_and_regulatory_retention_rights": "UNKNOWN",
+    "termination_deletion_and_export_obligations": "UNKNOWN",
+    "subprocessor_and_incident_terms": "UNKNOWN"
+  },
+  "evidence_gaps": [],
+  "operator_decision": "NOT_EVALUATED"
+}

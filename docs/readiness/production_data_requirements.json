@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "as_of": "2026-09-24",
+  "decision": "template_only_no_provider_selected",
+  "silent_fallback_permitted": false,
+  "requirements": [
+    {
+      "dataset": "pit_instrument_master",
+      "required_fields": ["stable_instrument_id", "identifier", "identifier_scheme", "market", "valid_from", "valid_to", "announced_at", "available_at", "revision_id"],
+      "maximum_latency": "provider_contract_required",
+      "history_start": "strategy_lookback_plus_listing_buffer_required",
+      "minimum_record_coverage": "1.000000",
+      "minimum_field_coverage": "1.000000",
+      "entitlement": "production_non_display_storage_derived_backup_audit"
+    },
+    {
+      "dataset": "corporate_actions",
+      "required_fields": ["action_id", "stable_instrument_id", "action_type", "announcement_time", "available_at", "effective_date", "revision", "supersedes_revision"],
+      "maximum_latency": "before_next_risk_or_decision_cycle",
+      "history_start": "full_research_and_audit_window",
+      "minimum_record_coverage": "1.000000",
+      "minimum_field_coverage": "1.000000",
+      "entitlement": "production_non_display_storage_derived_backup_audit"
+    },
+    {
+      "dataset": "tradability_calendar",
+      "required_fields": ["market", "session", "status", "suspension", "resumption", "price_limits", "exception_code", "announcement_time", "available_at", "revision_id"],
+      "maximum_latency": "before_order_eligibility_check",
+      "history_start": "full_research_and_audit_window",
+      "minimum_record_coverage": "1.000000",
+      "minimum_field_coverage": "1.000000",
+      "entitlement": "production_realtime_or_authoritative_event_channel"
+    },
+    {
+      "dataset": "benchmark_market_cap",
+      "required_fields": ["benchmark_id", "stable_instrument_id", "effective_from", "effective_to", "weight", "shares", "float", "market_cap", "available_at", "revision_id"],
+      "maximum_latency": "before_rebalance_decision",
+      "history_start": "full_backtest_window",
+      "minimum_record_coverage": "1.000000",
+      "minimum_field_coverage": "1.000000",
+      "entitlement": "index_and_constituent_non_display_derived_use"
+    },
+    {
+      "dataset": "streaming_market_data",
+      "required_fields": ["stream_id", "event_id", "sequence", "event_time", "provider_available_at", "received_at", "checksum", "correction_or_deletion_notice"],
+      "maximum_latency": "operator_and_provider_must_contract_numeric_threshold",
+      "history_start": "not_applicable_stream_plus_recovery_window",
+      "minimum_record_coverage": "1.000000_with_explicit_gap_state",
+      "minimum_field_coverage": "1.000000",
+      "entitlement": "production_realtime_non_display_storage_recovery"
+    }
+  ],
+  "acceptance_thresholds": {
+    "critical_dataset_record_coverage": "1.000000",
+    "critical_field_coverage": "1.000000",
+    "unexplained_provider_disagreements": 0,
+    "silent_fallbacks": 0,
+    "unresolved_sequence_gaps": 0,
+    "unknown_tradability_at_decision_time": 0,
+    "late_or_missing_revision_detection": "required",
+    "entitlement_and_retention_policy_present": "required"
+  }
+}

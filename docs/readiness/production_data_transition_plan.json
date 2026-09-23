@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "as_of": "2026-09-24",
+  "parallel_run": {
+    "window": "operator_must_define_representative_history_and_live_observation_window",
+    "namespaces_must_be_distinct": true,
+    "comparison_keys": ["stable_instrument_id", "event_time", "revision_id"],
+    "daily_reports": ["field_and_record_coverage", "revision_lag", "identifier_mapping", "tradability_and_calendar", "benchmark_and_market_cap", "stream_freshness_sequence_and_recovery", "provider_value_disagreement"],
+    "acceptance": {"unexplained_critical_differences": 0, "unresolved_gaps": 0, "unknown_tradability": 0, "silent_fallbacks": 0, "pit_coverage": "1.000000"},
+    "promotion": "explicit_versioned_operator_approval_only"
+  },
+  "migration": [
+    "freeze and checksum both provider versions",
+    "record the last common completeness and sequence watermark",
+    "stop writers and verify entitlement, retention and target-host rights",
+    "activate one exact provider/configuration version",
+    "replay from the common watermark into a new immutable namespace",
+    "reconcile all critical datasets before releasing readers"
+  ],
+  "rollback": {
+    "triggers": ["entitlement uncertainty", "stale or gapped stream", "identifier ambiguity", "missing revision", "unknown tradability or calendar", "coverage below threshold", "unexplained disagreement", "retention violation"],
+    "steps": ["block new decisions", "preserve evidence and watermarks", "verify the prior version remains entitled and fresh", "restore the exact prior configuration", "replay from the common watermark", "require complete reconciliation before release"],
+    "fail_closed": "If the prior source is stale, expired, incomplete or unlicensed, stop instead of falling back."
+  },
+  "retention_deletion_backup_matrix": [
+    {"class": "raw_provider_payload", "retention": "UNKNOWN", "deletion_deadline": "UNKNOWN", "backup_permitted": "UNKNOWN", "backup_expiry": "UNKNOWN", "derived_survival": "not_applicable", "owner": "provider_legal_operator"},
+    {"class": "normalized_pit_data", "retention": "UNKNOWN", "deletion_deadline": "UNKNOWN", "backup_permitted": "UNKNOWN", "backup_expiry": "UNKNOWN", "derived_survival": "not_applicable", "owner": "provider_legal_operator"},
+    {"class": "features_labels_models_signals", "retention": "UNKNOWN", "deletion_deadline": "UNKNOWN", "backup_permitted": "UNKNOWN", "backup_expiry": "UNKNOWN", "derived_survival": "UNKNOWN", "owner": "provider_legal_operator"},
+    {"class": "coverage_reconciliation_audit", "retention": "UNKNOWN", "deletion_deadline": "UNKNOWN", "backup_permitted": "UNKNOWN", "backup_expiry": "UNKNOWN", "derived_survival": "UNKNOWN", "owner": "provider_legal_operator"}
+  ],
+  "required_answers": [
+    {"owner": "operator", "question": "What exact parallel window, numeric latency, history start and deployment processes are required?"},
+    {"owner": "legal", "question": "Which raw, normalized, derived, audit and backup rights survive termination and for how long?"},
+    {"owner": "provider", "question": "What correction, deletion, incident, replay and recovery SLA is contractually guaranteed?"},
+    {"owner": "operator_and_legal", "question": "Who approves promotion, owns rollback and certifies deletion?"}
+  ]
+}

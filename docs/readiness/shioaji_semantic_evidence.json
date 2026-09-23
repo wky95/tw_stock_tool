@@ -1,0 +1,80 @@
+{
+  "schema_version": 1,
+  "research_date": "2026-09-24",
+  "target_version": "1.7.6",
+  "source_policy": "official SinoPac/Shioaji sources only",
+  "items": [
+    {
+      "id": "stable_identity_uniqueness_scope",
+      "query_date": "2026-09-24",
+      "url": "https://sinotrade.github.io/tutor/order/order_deal_event/stocks/",
+      "version": "Shioaji 1.7.6 mutable documentation",
+      "evidence": "event_id is documented for report deduplication and gap detection; order id equals deal trade_id; seqno, ordno and exchange_seq are exposed.",
+      "conclusion": "The documented fields can be preserved and used only in their stated roles.",
+      "unknown": "Uniqueness and rollover scope across account, process, reconnect and trading day are not specified; no field is a caller-controlled durable idempotency key."
+    },
+    {
+      "id": "lost_response_authoritative_negative_lookup",
+      "query_date": "2026-09-24",
+      "url": "https://sinotrade.github.io/tutor/order/UpdateStatus/",
+      "version": "Shioaji 1.7.6 mutable documentation",
+      "evidence": "update_status refreshes backend state and is prescribed after login or missed reports; list_trades is empty immediately after login until reconciliation.",
+      "conclusion": "An ambiguous command outcome requires update_status and full reconciliation before any decision.",
+      "unknown": "The documentation does not define an authoritative negative lookup or when absence permits safe resubmission."
+    },
+    {
+      "id": "reconnect_order_deal_baseline",
+      "query_date": "2026-09-24",
+      "url": "https://sinotrade.github.io/tutor/order/UpdateStatus/",
+      "version": "Shioaji 1.7.6 mutable documentation",
+      "evidence": "After a new login update_status fetches the day's orders; trade_cache_health reports NoBaseline, SequenceGap, PendingReport, UntrackableEventId and ProjectionFailed.",
+      "conclusion": "New login or reconnect remains kill-new-risk until update_status, order/deal baselines, cache health and local reconciliation pass.",
+      "unknown": "End-to-end completeness across disconnect boundaries and the exact point at which both streams are authoritative are not guaranteed."
+    },
+    {
+      "id": "cancel_replace_fill_race",
+      "query_date": "2026-09-24",
+      "url": "https://sinotrade.github.io/tutor/callback/orderdeal_event/",
+      "version": "Shioaji 1.7.6 mutable documentation",
+      "evidence": "place, update and cancel generate callbacks; official documentation warns that a deal may arrive before its order event.",
+      "conclusion": "Fills are authoritative facts and cumulative quantities must be reconciled before releasing reservations.",
+      "unknown": "No official atomicity, precedence or exhaustive terminal-state table for cancel/replace/fill races was found."
+    },
+    {
+      "id": "event_retention_query_horizon",
+      "query_date": "2026-09-24",
+      "url": "https://sinotrade.github.io/tutor/order/UpdateStatus/",
+      "version": "Shioaji 1.7.6 mutable documentation",
+      "evidence": "The reconciliation page describes fetching the day's orders after login.",
+      "conclusion": "Only a same-day order baseline is documented and must not be generalized.",
+      "unknown": "Historical query availability, report retention horizon, midnight rollover and timezone boundary semantics are unspecified."
+    },
+    {
+      "id": "session_token_expiry",
+      "query_date": "2026-09-24",
+      "url": "https://sinotrade.github.io/tutor/login/",
+      "version": "Shioaji 1.7.6 mutable documentation",
+      "evidence": "Official documentation describes API-key login, contract fetch, trade subscription and logout.",
+      "conclusion": "Any disconnect or authentication failure is treated as session degradation and blocks new risk.",
+      "unknown": "Token lifetime, idle expiry, renewal behavior, maintenance windows and production session SLA are not specified."
+    },
+    {
+      "id": "error_status_mapping",
+      "query_date": "2026-09-24",
+      "url": "https://sinotrade.github.io/tutor/order/order_deal_event/stocks/",
+      "version": "Shioaji 1.7.6 mutable documentation",
+      "evidence": "Order callbacks define op_code 00 as success and all other values as failure; op_msg, status_code and msg are exposed.",
+      "conclusion": "Unknown provider codes remain UNKNOWN/OPERATOR_DECISION and must never be coerced to a nearby category.",
+      "unknown": "No comprehensive versioned code catalog with retryability and terminality was found."
+    },
+    {
+      "id": "version_compatibility_deprecation",
+      "query_date": "2026-09-24",
+      "url": "https://sinotrade.github.io/release/",
+      "version": "Shioaji 1.7.6 release notes and upgrade guides",
+      "evidence": "Official release notes and upgrade guides document version-specific changes; 1.7.6 adds event identity and trade-cache behavior.",
+      "conclusion": "A future adapter must pin an exact SDK version and repeat conformance and source review before upgrade.",
+      "unknown": "Supported-version window, semantic-versioning guarantee, backward-compatibility promise and deprecation notice period are unspecified."
+    }
+  ]
+}

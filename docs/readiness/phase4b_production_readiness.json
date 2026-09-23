@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "report_id": "phase4b-production-data-semantic-closure-2026-09-24",
+  "as_of": "2026-09-24T00:00:00+08:00",
+  "baseline_commit": "07300a799993a556cc8b0cc19ec4e7f15118bdad",
+  "classification_vocabulary": ["ready", "partial", "blocked", "requires official verification", "requires credentials/account eligibility", "requires licensed data", "requires operator decision"],
+  "live_trading_ready": false,
+  "broker_adapter_implemented": false,
+  "production_data_adapter_implemented": false,
+  "secret_backend_implemented": false,
+  "control_plane_implemented": false,
+  "items": [
+    {"id": "broker.same_day_reconnect_baseline", "status": "partial", "reason": "Official 1.7.6 documentation says update_status fetches the day's orders and trade_cache_health exposes baseline/gap states; cross-boundary completeness remains unknown."},
+    {"id": "broker.identity_scope", "status": "blocked", "reason": "Documented identifiers are preserved, but cross-account/day/reconnect uniqueness and caller-controlled idempotency are not guaranteed."},
+    {"id": "broker.authoritative_negative_lookup", "status": "blocked", "reason": "No official rule establishes when an absent order is authoritatively absent or safe to resubmit."},
+    {"id": "broker.cancel_replace_fill_race", "status": "requires official verification", "reason": "Deal-before-order is documented; exhaustive race precedence and atomicity are not."},
+    {"id": "broker.retention_session_error_version_policy", "status": "blocked", "reason": "Query horizon, token expiry, comprehensive error catalog and compatibility/deprecation SLA remain unspecified."},
+    {"id": "production_data.contracts", "status": "ready", "scope": "provider-neutral offline contracts only"},
+    {"id": "production_data.offline_conformance", "status": "ready", "scope": "synthetic fixtures only; no provider behavior claim"},
+    {"id": "production_data.provider_selection", "status": "requires licensed data", "reason": "No provider or paid product was selected, purchased or recommended."},
+    {"id": "production_data.pit_acceptance", "status": "partial", "reason": "Fail-closed thresholds and reconciliation plan exist; candidate evidence and contracted numeric latency remain absent."},
+    {"id": "security.secret_resolver", "status": "partial", "reason": "Protocol and evidence contracts exist; no backend is implemented."},
+    {"id": "security.control_plane", "status": "blocked", "reason": "Threat-model contract exists; authenticated control plane is intentionally not implemented."},
+    {"id": "deployment.boundaries", "status": "partial", "reason": "Process, permissions, outbound, backup, clock and staged-capital policy schemas exist; deployment and operator values are absent."}
+  ],
+  "blockers": [
+    "Written production data rights and a provider meeting every critical PIT threshold",
+    "Official or credentialed controlled verification of remaining broker semantic unknowns",
+    "Operator selection and drill of secret backend, rotation and revocation",
+    "Authenticated control plane and independent two-step approval implementation",
+    "Approved deployment identity, outbound allowlist, clock gate, audit retention and tested restore RPO/RTO",
+    "Separately approved staged-capital values and rollback ownership"
+  ],
+  "operator_legal_provider_questions": [
+    "Which licensed feed contract covers non-display trading, storage, backup, derived artifacts and audit retention?",
+    "What numeric freshness, recovery and historical replay SLA is contractually guaranteed?",
+    "Who owns entitlement expiry, deletion certification and provider incident escalation?",
+    "Which secret backend and process identity are approved, and who drills rotation/revocation?",
+    "What RPO/RTO, audit retention, clock drift, staged-capital and rollback values are independently approved?"
+  ],
+  "next_implementation_order": [
+    "Obtain provider/legal answers and populate candidate templates without purchasing in this milestone",
+    "Evaluate candidate evidence against the 100 percent critical PIT thresholds",
+    "Build a licensed provider adapter and immutable parallel namespace only after approval",
+    "Run historical and streaming parallel reconciliation with no silent fallback",
+    "Implement and drill a selected secret backend and authenticated read-only capability probe",
+    "Resolve remaining broker semantics with official clarification or controlled credentialed simulation in a separately approved milestone",
+    "Design and independently approve deployment/control plane before any staged-capital proposal"
+  ]
+}

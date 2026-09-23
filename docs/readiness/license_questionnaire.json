@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "template": true,
+  "answer_vocabulary": ["yes", "no", "conditional", "unknown"],
+  "questions": [
+    {"id": "non_display", "owner": "provider_and_legal", "question": "Does the license permit non-display algorithmic research, risk checks and trading use?", "answer": "unknown", "evidence_reference": null},
+    {"id": "realtime", "owner": "provider_and_legal", "question": "Which real-time, delayed and end-of-day feeds and target processes are entitled?", "answer": "unknown", "evidence_reference": null},
+    {"id": "storage", "owner": "provider_and_legal", "question": "May raw and normalized data be stored, for how long, in which regions and with what access controls?", "answer": "unknown", "evidence_reference": null},
+    {"id": "backup", "owner": "provider_and_legal", "question": "May encrypted backups and disaster-recovery replicas retain licensed data?", "answer": "unknown", "evidence_reference": null},
+    {"id": "derived", "owner": "provider_and_legal", "question": "May features, labels, models, signals and aggregate reports be retained after source deletion?", "answer": "unknown", "evidence_reference": null},
+    {"id": "display_redistribution", "owner": "provider_and_legal", "question": "Are local dashboards, exports, support access or redistribution permitted?", "answer": "unknown", "evidence_reference": null},
+    {"id": "audit", "owner": "provider_and_legal", "question": "May data and lineage be retained for audit, incident and regulatory evidence?", "answer": "unknown", "evidence_reference": null},
+    {"id": "corrections", "owner": "provider", "question": "How are revisions, corrections and deletions identified and replayed?", "answer": "unknown", "evidence_reference": null},
+    {"id": "termination", "owner": "provider_and_legal", "question": "What export, deletion, certification and backup-expiry duties apply at termination?", "answer": "unknown", "evidence_reference": null},
+    {"id": "incident", "owner": "provider", "question": "What SLA, recovery, incident notice and historical replay commitments apply?", "answer": "unknown", "evidence_reference": null}
+  ]
+}

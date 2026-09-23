@@ -69,6 +69,9 @@ Dev、test、paper、live 使用不同設定、state path 與 credentials。Live
 - Phase 4（總體目標）：指定券商 adapter、小額 live safety gates 與 runbook。
 - Phase 4A（完成）：broker readiness audit、provider-neutral contracts、離線 conformance harness；
   不含 broker adapter、credentials、network transport 或 live enablement。
-- Phase 4B+（gated）：production data、secret/control-plane/deployment boundary、credentialed
-  simulation 與指定券商 adapter；只有所有 go/no-go gate 通過後才能另提 staged-capital 設計。
+- Phase 4B（完成，offline readiness only）：production-data contracts/conformance、broker 官方
+  語意證據、provider/license decision pack、secret/control-plane/deployment policy schemas；不含
+  provider/broker adapter、credentials、network、部署或 live enablement。
+- Phase 4C+（gated）：licensed production-data adapter、secret backend、credentialed simulation
+  與指定券商 adapter；只有所有 go/no-go gate 通過後才能另提 staged-capital 實作。
 - Phase 5：多市場、多策略、optimizer、advanced execution、drift。

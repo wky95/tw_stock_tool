@@ -96,3 +96,15 @@ All items must be **go**:
 
 Any unchecked item is **no-go**. Even a fully implemented adapter would not by itself mean the
 system is safe for live trading.
+
+## Phase 4B evidence refinement
+
+For Shioaji 1.7.6, a future reconnect procedure must subscribe to reports, call `update_status` to
+fetch the day's orders, obtain order and deal baselines, inspect `trade_cache_health`, then reconcile
+orders, fills, positions and cash. A healthy connection alone is insufficient. Absence from the
+same-day result is not treated as proof that an ambiguous submission never reached the broker.
+
+Identifier uniqueness across day/account/reconnect, negative lookup authority, race atomicity,
+query retention, token expiry, complete error mapping and version/deprecation guarantees remain
+unknown. The audited evidence register is
+[`readiness/shioaji_semantic_evidence.json`](readiness/shioaji_semantic_evidence.json).
