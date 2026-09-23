@@ -124,6 +124,19 @@ artifacts。三項 checklist 缺一、來源為 exploratory、核准晚於 execu
 不完整時都會拒絕。Paper Operations Dashboard 會以 reconciled marks 唯讀顯示 target／actual
 weight、drift 與 exact artifact version。
 
+多交易日的離線 soak 與 failure drill 由一份 content-addressed JSON plan 驅動。先用 dry-run
+驗證 pinned calendar、instrument references、market events 與 exact target versions；只有明確
+`--confirm` 才會寫入 PAPER SQLite state 與 immutable soak report：
+
+```bash
+island-quant paper-soak-run --paper --plan <paper-soak-plan.json> --dry-run
+island-quant paper-soak-run --paper --plan <paper-soak-plan.json> --confirm
+```
+
+每個 session 都會重建 runtime 以演練 process restart，並重播同一 session 驗證冪等性。
+失敗也會產生標記為 `incomplete` 的診斷 report。Plan 內的 broker participation cap 是可重現
+failure injection，不代表真實券商成交容量；所有結果只屬工程驗證，不能解讀為真實績效。
+
 執行前可先 dry-run；超過設定安全上限必須明確加入 `--confirm-large-run`：
 
 ```bash
@@ -244,6 +257,7 @@ ISLAND_QUANT__TRADING__INITIAL_CASH=2500000 island-quant show-config
 - [ADR 0013：Replayable paper accounting runtime](docs/adr/0013-paper-accounting-runtime.md)
 - [ADR 0014：Exact-version paper target execution](docs/adr/0014-exact-paper-target-execution.md)
 - [ADR 0015：Audited PAPER promotion and portfolio risk](docs/adr/0015-paper-promotion-and-portfolio-risk.md)
+- [ADR 0016：Multi-session PAPER soak and failure drills](docs/adr/0016-paper-soak-and-failure-drills.md)
 
 ## 設定安全原則
 

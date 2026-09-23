@@ -61,6 +61,36 @@ only when the reconciled portfolio valuation is complete.
 Jobs use exact job versions, a pinned trading calendar session, a singleton lease, deterministic run
 keys, bounded retries and dead-letter state. A completed decision session is never run again.
 
+## Multi-session soak and restart drill
+
+Run an offline soak before treating a PAPER configuration as operationally exercised:
+
+```bash
+island-quant paper-soak-run --paper --plan <paper-soak-plan.json> --dry-run
+island-quant paper-soak-run --paper --plan <paper-soak-plan.json> --confirm
+```
+
+The strict schema-version-1 plan pins an ordered settlement calendar, instrument ID/market/reference
+version, and one or more ordered cycles. Every cycle contains a timezone-aware `as_of`, complete
+market coverage, an optional exact `paper_target_snapshots` SHA-256, and a decimal
+`broker_participation_cap` in `(0, 1]`. The cap is a deterministic engineering failure-injection
+control. It is not a statement about a broker, exchange liquidity, or expected execution.
+
+Dry-run validates the complete plan and every referenced target without creating SQLite databases or
+reports. Confirmed execution reconstructs the scheduler, broker, accounting projector, and runtime
+for each session; repeats the same session to test idempotency; and checks terminal order state,
+drained outbox, released reservations, complete valuation, exact accounting reconciliation, and
+final settlement. A buy needs enough pinned future sessions for T+2; the runner never invents a
+settlement date.
+
+The final `paper_soak_reports` artifact is content-addressed, pins the plan and target lineage, and is
+classified `paper_engineering_soak`. A failed drill is still published with completeness
+`incomplete` for diagnosis and the CLI exits non-zero. Preserve that report and databases when
+investigating; do not edit state or change the plan in place. A corrected plan has a new hash.
+
+Soak is fully local and deterministic. It neither connects to a broker nor establishes execution
+quality, market realism, alpha, or readiness for live trading.
+
 ## Safe mode and recovery
 
 Critical reconciliation, stale data/heartbeat, risk limits, repeated failures, corruption or a crash

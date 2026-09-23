@@ -8,6 +8,7 @@ import sys
 from dataclasses import asdict
 from datetime import date, datetime
 from decimal import Decimal
+from pathlib import Path
 
 from island_quant.brokers.paper import (
     DeterministicPaperBroker,
@@ -28,6 +29,7 @@ from island_quant.operations.monitoring import OperationsStateStore
 from island_quant.operations.promotion import PaperPromotionRequest, PaperTargetPromoter
 from island_quant.operations.runtime import PaperRuntime, runtime_result_dict
 from island_quant.operations.scheduler import FixedClock, PaperScheduler
+from island_quant.operations.soak import PaperSoakPlan, PaperSoakRunner
 from island_quant.operations.strategy import (
     MARKET_TIMEZONE,
     ExactPaperTargetReader,
@@ -58,6 +60,11 @@ def add_runtime_parser(
     promotion.add_argument("--approve-risk", action="store_true")
     promotion.add_argument("--dry-run", action="store_true")
     promotion.add_argument("--confirm", action="store_true")
+    soak = subparsers.add_parser("paper-soak-run")
+    soak.add_argument("--paper", action="store_true", required=True)
+    soak.add_argument("--plan", type=Path, required=True)
+    soak.add_argument("--dry-run", action="store_true")
+    soak.add_argument("--confirm", action="store_true")
 
 
 def run_promotion(args: argparse.Namespace, settings: AppSettings) -> int:
@@ -85,6 +92,22 @@ def run_promotion(args: argparse.Namespace, settings: AppSettings) -> int:
         return 2
     print(json.dumps(asdict(result), default=str, sort_keys=True))
     return 0
+
+
+def run_soak(args: argparse.Namespace, settings: AppSettings) -> int:
+    try:
+        if args.dry_run and args.confirm:
+            raise ValueError("paper soak accepts either --dry-run or --confirm")
+        if not args.dry_run and not args.confirm:
+            print("paper soak error: use --dry-run or --confirm", file=sys.stderr)
+            return 2
+        plan = PaperSoakPlan.read(args.plan)
+        result = PaperSoakRunner(settings).run(plan, dry_run=bool(args.dry_run))
+    except (OSError, ValueError, KeyError, TypeError, RuntimeError) as exc:
+        print(f"paper soak error: {exc}", file=sys.stderr)
+        return 2
+    print(json.dumps(asdict(result), default=str, sort_keys=True))
+    return 0 if result.status in {"validated", "passed"} else 2
 
 
 def run_runtime(args: argparse.Namespace, settings: AppSettings) -> int:

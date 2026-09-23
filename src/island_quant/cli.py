@@ -214,6 +214,10 @@ def main(argv: list[str] | None = None) -> int:
         from island_quant.operations.cli import run_promotion
 
         return run_promotion(args, settings)
+    elif args.command == "paper-soak-run":
+        from island_quant.operations.cli import run_soak
+
+        return run_soak(args, settings)
     elif args.command.startswith("paper-"):
         from island_quant.oms.cli import run_paper_command
 
