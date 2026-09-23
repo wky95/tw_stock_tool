@@ -72,6 +72,9 @@ Dev、test、paper、live 使用不同設定、state path 與 credentials。Live
 - Phase 4B（完成，offline readiness only）：production-data contracts/conformance、broker 官方
   語意證據、provider/license decision pack、secret/control-plane/deployment policy schemas；不含
   provider/broker adapter、credentials、network、部署或 live enablement。
-- Phase 4C+（gated）：licensed production-data adapter、secret backend、credentialed simulation
+- Phase 4C（完成，offline admission tooling only）：strict decision/evidence pack、deterministic
+  admission/no-go evaluator、synthetic reconciliation gates 與 read-only CLI；不含 provider
+  selection、production adapter、credentials、deployment、control plane 或 live enablement。
+- Phase 4D+（gated）：licensed production-data adapter、secret backend、credentialed simulation
   與指定券商 adapter；只有所有 go/no-go gate 通過後才能另提 staged-capital 實作。
 - Phase 5：多市場、多策略、optimizer、advanced execution、drift。

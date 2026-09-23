@@ -61,6 +61,11 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers.add_parser("validate-config", help="validate configuration and safety invariants")
     subparsers.add_parser("show-config", help="print effective non-secret configuration")
     subparsers.add_parser("doctor", help="check the Phase 0 installation")
+    readiness = subparsers.add_parser(
+        "validate-production-readiness",
+        help="validate one exact offline production-readiness decision pack",
+    )
+    readiness.add_argument("--pack", type=Path, required=True)
     ingest = subparsers.add_parser(
         "ingest-data", help="ingest point-in-time daily price foundation"
     )
@@ -160,6 +165,8 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
+    if args.command == "validate-production-readiness":
+        return _validate_production_readiness(args)
     try:
         settings = load_settings(args.config)
     except (OSError, ValueError, ValidationError, yaml.YAMLError) as exc:
@@ -223,6 +230,21 @@ def main(argv: list[str] | None = None) -> int:
 
         return run_paper_command(args, settings)
     return 0
+
+
+def _validate_production_readiness(args: argparse.Namespace) -> int:
+    from island_quant.readiness.admission import (
+        load_and_evaluate_readiness_pack,
+        report_json,
+    )
+
+    try:
+        report = load_and_evaluate_readiness_pack(args.pack)
+    except ValueError as exc:
+        print(json.dumps({"status": "invalid", "error": str(exc)}, sort_keys=True), file=sys.stderr)
+        return 2
+    print(report_json(report))
+    return 0 if report.evaluation_passed else 3
 
 
 def _add_pinned_feature_arguments(parser: argparse.ArgumentParser) -> None:

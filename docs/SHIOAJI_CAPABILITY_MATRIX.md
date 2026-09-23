@@ -7,6 +7,10 @@ attempted, and no broker endpoint was contacted.
 Pinned research target: latest PyPI release **1.7.6**, uploaded 2026-09-22. Documentation is mutable;
 the adapter milestone must re-check every source and pin an exact version.
 
+Phase 4C recheck on 2026-09-24 confirmed the official 1.7.6 release-note commit `15b65e95` and the
+same-day-order/cache-health behavior below. No newly reviewed official source closed any of the
+eight preserved semantic blockers.
+
 | Capability | Official evidence | Audit result |
 |---|---|---|
 | Python versions | PyPI metadata says `Requires-Python >=3.7`; 1.7.6 publishes CPython 3.7 ABI3 and CPython 3.14 free-threaded wheels. | Supported range is metadata-confirmed; exact Island Quant Python 3.12 runtime remains untested. |

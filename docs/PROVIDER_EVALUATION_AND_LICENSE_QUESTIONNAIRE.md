@@ -38,3 +38,9 @@ A candidate is acceptable only when every critical requirement has evidence, all
 needed by the deployment are affirmative or explicitly satisfied conditions, PIT record and field
 coverage are 100%, critical disagreements are zero, and rollback remains licensed. Cost, commercial
 terms and procurement approval are operator decisions outside this milestone.
+
+The version 2 templates deliberately retain `UNKNOWN` for every unanswered provider, legal and
+operator field. They include exact product/schema/entitlement/config versions, evidence
+retrieval/review/expiry, numeric latency, history start/depth, all required reference/tradability/
+benchmark/stream behaviors, target-process rights and termination deletion certification. Do not
+change an answer to affirmative without referenced official or contract evidence.

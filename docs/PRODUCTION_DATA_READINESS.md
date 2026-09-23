@@ -67,3 +67,15 @@ provider contract inputs. See:
 - [Provider evaluation and license questionnaire](PROVIDER_EVALUATION_AND_LICENSE_QUESTIONNAIRE.md)
 - [Machine-readable requirements](readiness/production_data_requirements.json)
 - [Phase 4B readiness](readiness/phase4b_production_readiness.json)
+
+## Phase 4C admission closure
+
+Phase 4C converts the requirements into a strict offline decision/evidence pack and deterministic
+no-go evaluator. Candidate identity, numeric SLA, history, PIT timestamps, coverage,
+entitlement/retention/backup/derived/deletion rights and reconciliation must all be explicit.
+Unknown, expired or contradictory evidence is no-go; no provider is inferred or recommended.
+
+The included synthetic pack is evaluator test data only. It is not provider behavior, licensed
+production data or evidence of readiness. See the
+[validation runbook](PRODUCTION_READINESS_VALIDATION_RUNBOOK.md) and
+[schema](READINESS_DECISION_PACK_SCHEMA.md).

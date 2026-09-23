@@ -85,6 +85,20 @@ offline fixtures：沒有選擇或連接資料商、沒有 secret backend、brok
 部署、控制 endpoint 或 live toggle。見
 [Phase 4B readiness](docs/readiness/phase4b_production_readiness.json)。
 
+Phase 4C 新增嚴格、確定性且唯讀的 production admission/no-go evaluator。它只接受一個明確
+absolute path 的 versioned decision/evidence pack，拒絕 unknown fields、過期／checksum 錯誤的
+證據、未知 critical 決策、低於 100% PIT coverage、provider disagreement、stream faults、silent
+fallback、不安全 deployment 決策，以及沒有官方證據就消除 broker blocker 的 pack：
+
+```bash
+island-quant validate-production-readiness \
+  --pack "$PWD/docs/readiness/phase4c_synthetic_readiness_pack.json"
+```
+
+內附 pack 全是 synthetic、offline、not provider behavior、not licensed production data、not
+live-ready。即使離線 conformance 通過，報告仍固定為 `production_admission=no_go` 與
+`live_trading_ready=false`。目前沒有 provider/operator/legal 的正式答案，系統仍不得實盤。
+
 Paper Operations 加入 pinned-calendar scheduler、singleton lease、bounded retry/dead-letter、
 startup reconciliation、heartbeat、safe mode、風控 limits、持久化 alerts 與 immutable daily
 report。唯讀 operations UI：
@@ -282,6 +296,11 @@ ISLAND_QUANT__TRADING__INITIAL_CASH=2500000 island-quant show-config
 - [Production data integration runbook](docs/PRODUCTION_DATA_INTEGRATION_RUNBOOK.md)
 - [Provider evaluation and license questionnaire](docs/PROVIDER_EVALUATION_AND_LICENSE_QUESTIONNAIRE.md)
 - [Security and deployment design](docs/SECURITY_DEPLOYMENT_DESIGN.md)
+- [ADR 0019：Production admission/no-go evaluator](docs/adr/0019-production-admission-no-go-evaluator.md)
+- [Production readiness validation runbook](docs/PRODUCTION_READINESS_VALIDATION_RUNBOOK.md)
+- [Decision/evidence pack schema](docs/READINESS_DECISION_PACK_SCHEMA.md)
+- [Provider admission and reconciliation runbook](docs/PROVIDER_ADMISSION_RECONCILIATION_RUNBOOK.md)
+- [Security/deployment decision checklist](docs/SECURITY_DEPLOYMENT_DECISION_CHECKLIST.md)
 
 ## 設定安全原則
 

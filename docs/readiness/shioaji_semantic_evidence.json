@@ -3,6 +3,14 @@
   "research_date": "2026-09-24",
   "target_version": "1.7.6",
   "source_policy": "official SinoPac/Shioaji sources only",
+  "release_evidence": {
+    "query_date": "2026-09-24",
+    "url": "https://sinotrade.github.io/release/",
+    "version": "1.7.6",
+    "release_date": "2026-09-22",
+    "commit_id": "15b65e95",
+    "conclusion": "Official release notes confirm built-in trade updates, event_id and trade cache health in 1.7.6; they do not close the eight semantic blockers."
+  },
   "items": [
     {
       "id": "stable_identity_uniqueness_scope",

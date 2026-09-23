@@ -84,3 +84,8 @@ Before implementation, obtain written answers for numeric latency/history, licen
 processes, non-display/algorithmic use, storage/backups, derived use, audit retention, display/export,
 incident SLA, termination/deletion and correction recovery. No candidate is recommended by this
 runbook.
+
+Phase 4C requires these answers in one strict evidence pack before any candidate can pass its
+declared scope. Run the exact pack through `validate-production-readiness`; never use `latest`, file
+discovery or an implicit fallback. Detailed cutover and rollback gates are in
+[Provider admission and reconciliation](PROVIDER_ADMISSION_RECONCILIATION_RUNBOOK.md).

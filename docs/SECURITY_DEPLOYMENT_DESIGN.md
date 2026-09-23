@@ -54,3 +54,10 @@ cannot activate anything in the current application.
 Open decisions: deployment host and identities; Keychain versus managed manager; rotation and
 revocation owner; control-plane identity provider and roles; outbound destinations; audit retention;
 RPO/RTO; clock threshold; backup region; staged limits and rollback owner.
+
+Phase 4C validates these as explicit, owned, expiring decisions in an offline pack. The validator
+also requires owner-only permissions, a non-empty host/port allowlist, no public inbound, complete
+control-plane threats, encrypted-backup restore evidence, numeric clock drift, independent approval
+and staged-capital/rollback owners. See the
+[security/deployment decision checklist](SECURITY_DEPLOYMENT_DECISION_CHECKLIST.md). Passing a schema
+does not establish that any backend or deployment control exists.

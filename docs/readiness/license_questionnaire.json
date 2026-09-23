@@ -1,5 +1,5 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "template": true,
   "answer_vocabulary": ["yes", "no", "conditional", "unknown"],
   "questions": [
@@ -12,6 +12,8 @@
     {"id": "audit", "owner": "provider_and_legal", "question": "May data and lineage be retained for audit, incident and regulatory evidence?", "answer": "unknown", "evidence_reference": null},
     {"id": "corrections", "owner": "provider", "question": "How are revisions, corrections and deletions identified and replayed?", "answer": "unknown", "evidence_reference": null},
     {"id": "termination", "owner": "provider_and_legal", "question": "What export, deletion, certification and backup-expiry duties apply at termination?", "answer": "unknown", "evidence_reference": null},
-    {"id": "incident", "owner": "provider", "question": "What SLA, recovery, incident notice and historical replay commitments apply?", "answer": "unknown", "evidence_reference": null}
+    {"id": "incident", "owner": "provider", "question": "What numeric SLA, recovery, incident notice and historical replay commitments apply?", "answer": "unknown", "evidence_reference": null},
+    {"id": "target_host_process", "owner": "provider_and_legal", "question": "Which exact host identities, processes and environments are licensed?", "answer": "unknown", "evidence_reference": null},
+    {"id": "deletion_certification", "owner": "provider_and_legal", "question": "Who certifies deletion, what evidence is acceptable, and when do backups expire?", "answer": "unknown", "evidence_reference": null}
   ]
 }
