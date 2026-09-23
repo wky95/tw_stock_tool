@@ -83,6 +83,10 @@ drained outbox, released reservations, complete valuation, exact accounting reco
 final settlement. A buy needs enough pinned future sessions for T+2; the runner never invents a
 settlement date.
 
+The runner uses the separately configured `paper.soak_*_database_path` values. Configuration
+validation rejects any overlap with the normal PAPER OMS, operations, or scheduler databases. Keep
+the soak namespace disposable and preserve it only when investigating a failed report.
+
 The final `paper_soak_reports` artifact is content-addressed, pins the plan and target lineage, and is
 classified `paper_engineering_soak`. A failed drill is still published with completeness
 `incomplete` for diagnosis and the CLI exits non-zero. Preserve that report and databases when

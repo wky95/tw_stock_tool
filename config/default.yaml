@@ -48,6 +48,9 @@ paper:
   oms_database_path: state/paper/oms.sqlite
   operations_database_path: state/paper/operations.sqlite
   scheduler_database_path: state/paper/scheduler.sqlite
+  soak_oms_database_path: state/paper-soak/oms.sqlite
+  soak_operations_database_path: state/paper-soak/operations.sqlite
+  soak_scheduler_database_path: state/paper-soak/scheduler.sqlite
   alert_log_path: logs/paper-alerts.jsonl
   market_fixture_path: config/paper_market.json
   calendar_fixture_path: config/paper_calendar.json

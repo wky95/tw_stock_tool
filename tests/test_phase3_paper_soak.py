@@ -31,6 +31,9 @@ def settings(tmp_path: Path) -> AppSettings:
             oms_database_path=tmp_path / "state" / "oms.sqlite",
             operations_database_path=tmp_path / "state" / "operations.sqlite",
             scheduler_database_path=tmp_path / "state" / "scheduler.sqlite",
+            soak_oms_database_path=tmp_path / "soak" / "oms.sqlite",
+            soak_operations_database_path=tmp_path / "soak" / "operations.sqlite",
+            soak_scheduler_database_path=tmp_path / "soak" / "scheduler.sqlite",
         ),
     )
 
@@ -139,7 +142,7 @@ def test_dry_run_validates_targets_without_runtime_writes(tmp_path: Path) -> Non
     plan = PaperSoakPlan.read(write_plan(tmp_path, plan_payload(version)))
     result = PaperSoakRunner(app_settings).run(plan, dry_run=True)
     assert result.status == "validated" and result.dry_run
-    assert not app_settings.paper.oms_database_path.exists()
+    assert not app_settings.paper.soak_oms_database_path.exists()
     assert not (app_settings.research.artifact_root / "paper_soak_reports").exists()
 
 
@@ -254,3 +257,9 @@ def test_cli_requires_confirmation_and_supports_dry_run(
     assert "--dry-run or --confirm" in capsys.readouterr().err
     assert run_soak(Namespace(plan=path, dry_run=True, confirm=False), app_settings) == 0
     assert '"status": "validated"' in capsys.readouterr().out
+
+
+def test_soak_state_paths_must_be_distinct_from_operational_state(tmp_path: Path) -> None:
+    shared = tmp_path / "shared.sqlite"
+    with pytest.raises(ValueError, match="must use distinct paths"):
+        PaperSettings(oms_database_path=shared, soak_oms_database_path=shared)

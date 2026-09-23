@@ -135,7 +135,8 @@ island-quant paper-soak-run --paper --plan <paper-soak-plan.json> --confirm
 
 每個 session 都會重建 runtime 以演練 process restart，並重播同一 session 驗證冪等性。
 失敗也會產生標記為 `incomplete` 的診斷 report。Plan 內的 broker participation cap 是可重現
-failure injection，不代表真實券商成交容量；所有結果只屬工程驗證，不能解讀為真實績效。
+failure injection，不代表真實券商成交容量。Soak 使用獨立的 `state/paper-soak/` 設定路徑，
+不得與一般 PAPER operations database 重疊；所有結果只屬工程驗證，不能解讀為真實績效。
 
 執行前可先 dry-run；超過設定安全上限必須明確加入 `--confirm-large-run`：
 

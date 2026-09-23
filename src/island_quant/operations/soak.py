@@ -173,8 +173,8 @@ class PaperSoakResult:
 class PaperSoakRunner:
     def __init__(self, settings: AppSettings) -> None:
         self.settings = settings
-        self.oms = SQLiteOMSRepository(settings.paper.oms_database_path)
-        self.state = OperationsStateStore(settings.paper.operations_database_path)
+        self.oms = SQLiteOMSRepository(settings.paper.soak_oms_database_path)
+        self.state = OperationsStateStore(settings.paper.soak_operations_database_path)
 
     def run(self, plan: PaperSoakPlan, *, dry_run: bool) -> PaperSoakResult:
         plan.validate()
@@ -282,7 +282,7 @@ class PaperSoakRunner:
         marks: tuple[PaperMark, ...],
     ) -> tuple[PaperRuntimeResult, bool, str | None]:
         scheduler = PaperScheduler(
-            self.settings.paper.scheduler_database_path,
+            self.settings.paper.soak_scheduler_database_path,
             FixedClock(cycle.as_of),
             owner="paper-soak-runner",
         )

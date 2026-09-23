@@ -19,6 +19,10 @@ identity. The runner checks safe mode, order terminality, transactional outbox d
 position reservation release, valuation completeness, exact Decimal accounting reconciliation, and
 T+2 settlement completion.
 
+Soak OMS, operations, and scheduler databases have dedicated configured paths. Configuration fails
+if any soak database path overlaps either another soak database or a normal PAPER database, so a
+failure drill cannot mutate the daily PAPER operations state by accident.
+
 The broker participation cap is stored in the content-addressed plan. Lowering it below the strategy
 risk cap is an intentional failure injection for partial-fill/restart tests; it is not a model of any
 Taiwan broker. A partial order that cannot be reconciled after reconstructing an in-memory broker

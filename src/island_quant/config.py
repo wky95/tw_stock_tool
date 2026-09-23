@@ -113,6 +113,9 @@ class PaperSettings(BaseModel):
     oms_database_path: Path = Path("state/paper/oms.sqlite")
     operations_database_path: Path = Path("state/paper/operations.sqlite")
     scheduler_database_path: Path = Path("state/paper/scheduler.sqlite")
+    soak_oms_database_path: Path = Path("state/paper-soak/oms.sqlite")
+    soak_operations_database_path: Path = Path("state/paper-soak/operations.sqlite")
+    soak_scheduler_database_path: Path = Path("state/paper-soak/scheduler.sqlite")
     alert_log_path: Path = Path("logs/paper-alerts.jsonl")
     market_fixture_path: Path = Path("config/paper_market.json")
     calendar_fixture_path: Path = Path("config/paper_calendar.json")
@@ -129,6 +132,18 @@ class PaperSettings(BaseModel):
     def forbid_live(self) -> PaperSettings:
         if self.live_trading_enabled:
             raise ValueError("paper service cannot enable live trading")
+        operational = {
+            self.oms_database_path,
+            self.operations_database_path,
+            self.scheduler_database_path,
+        }
+        soak = {
+            self.soak_oms_database_path,
+            self.soak_operations_database_path,
+            self.soak_scheduler_database_path,
+        }
+        if len(operational) != 3 or len(soak) != 3 or operational & soak:
+            raise ValueError("paper operational and soak databases must use distinct paths")
         return self
 
 
