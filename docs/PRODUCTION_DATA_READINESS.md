@@ -79,3 +79,12 @@ The included synthetic pack is evaluator test data only. It is not provider beha
 production data or evidence of readiness. See the
 [validation runbook](PRODUCTION_READINESS_VALIDATION_RUNBOOK.md) and
 [schema](READINESS_DECISION_PACK_SCHEMA.md).
+
+## Phase 4D evidence intake closure
+
+Phase 4D accepts only four exact, absolute, strict answer files and emits a no-go draft. It preserves
+UNKNOWN provider/legal/operator answers and all eight broker blockers, rejects synthetic evidence
+in production candidates, and compares evidence/decision/expiry/coverage regressions
+deterministically. It does not select a provider or turn the current UNKNOWN templates into answers.
+See [the intake runbook](PRODUCTION_EVIDENCE_INTAKE_RUNBOOK.md), [answer schemas](PROVIDER_LEGAL_OPERATOR_ANSWER_SCHEMAS.md),
+and [current Phase 4D no-go report](readiness/phase4d_production_readiness.json).

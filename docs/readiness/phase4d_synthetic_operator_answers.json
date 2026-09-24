@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "classification": "synthetic_offline",
+  "owner": {"owner_id": "fixture-operator", "name": "Synthetic Operator", "role": "offline fixture owner"},
+  "evidence": [{"evidence_id": "synthetic-operator", "owner_id": "fixture-operator", "source_kind": "synthetic", "source_url": "https://example.invalid/island-quant/operator", "document_version": "fixture-v1", "retrieved_on": "2026-09-20", "reviewed_on": "2026-09-21", "expires_on": "2027-09-21", "summary": "Synthetic operator evidence; no control is implemented or deployed.", "summary_sha256": "b027e0da40f72d1e5be888f23db457e35c9ecb08eace00bc78465f54c514d0ba", "document_sha256": "3333333333333333333333333333333333333333333333333333333333333333", "verified_sha256": "3333333333333333333333333333333333333333333333333333333333333333"}],
+  "decisions": {
+    "secret_backend_selection": {"status": "approved", "owner_id": "fixture-operator", "evidence_ids": ["synthetic-operator"], "answer": "Synthetic fixture only."},
+    "rotation_revocation_owner": {"status": "approved", "owner_id": "fixture-operator", "evidence_ids": ["synthetic-operator"], "answer": "Synthetic fixture only."},
+    "dedicated_process_identity": {"status": "approved", "owner_id": "fixture-operator", "evidence_ids": ["synthetic-operator"], "answer": "Synthetic fixture only."},
+    "owner_only_filesystem_mode": {"status": "approved", "owner_id": "fixture-operator", "evidence_ids": ["synthetic-operator"], "answer": "Synthetic fixture only."},
+    "immutable_release_runtime_separation": {"status": "approved", "owner_id": "fixture-operator", "evidence_ids": ["synthetic-operator"], "answer": "Synthetic fixture only."},
+    "outbound_hostname_port_allowlist": {"status": "approved", "owner_id": "fixture-operator", "evidence_ids": ["synthetic-operator"], "answer": "Synthetic fixture only."},
+    "no_public_inbound": {"status": "approved", "owner_id": "fixture-operator", "evidence_ids": ["synthetic-operator"], "answer": "Synthetic fixture only."},
+    "control_plane_threat_model": {"status": "approved", "owner_id": "fixture-operator", "evidence_ids": ["synthetic-operator"], "answer": "Synthetic fixture only."},
+    "dashboard_control_plane_separation": {"status": "approved", "owner_id": "fixture-operator", "evidence_ids": ["synthetic-operator"], "answer": "Synthetic fixture only."},
+    "audit_retention": {"status": "approved", "owner_id": "fixture-operator", "evidence_ids": ["synthetic-operator"], "answer": "Synthetic fixture only."},
+    "encrypted_backup_restore_drill": {"status": "approved", "owner_id": "fixture-operator", "evidence_ids": ["synthetic-operator"], "answer": "Synthetic fixture only."},
+    "rpo_rto": {"status": "approved", "owner_id": "fixture-operator", "evidence_ids": ["synthetic-operator"], "answer": "Synthetic fixture only."},
+    "clock_source_numeric_drift_gate": {"status": "approved", "owner_id": "fixture-operator", "evidence_ids": ["synthetic-operator"], "answer": "Synthetic fixture only."},
+    "two_step_independent_approval": {"status": "approved", "owner_id": "fixture-operator", "evidence_ids": ["synthetic-operator"], "answer": "Synthetic fixture only."},
+    "approval_expiry": {"status": "approved", "owner_id": "fixture-operator", "evidence_ids": ["synthetic-operator"], "answer": "Synthetic fixture only."},
+    "maximum_staged_capital": {"status": "approved", "owner_id": "fixture-operator", "evidence_ids": ["synthetic-operator"], "answer": "Synthetic fixture only."},
+    "maximum_order_notional": {"status": "approved", "owner_id": "fixture-operator", "evidence_ids": ["synthetic-operator"], "answer": "Synthetic fixture only."},
+    "loss_rollback_cap": {"status": "approved", "owner_id": "fixture-operator", "evidence_ids": ["synthetic-operator"], "answer": "Synthetic fixture only."},
+    "kill_switch_rollback_owner": {"status": "approved", "owner_id": "fixture-operator", "evidence_ids": ["synthetic-operator"], "answer": "Synthetic fixture only."}
+  }
+}

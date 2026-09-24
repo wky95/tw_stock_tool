@@ -66,6 +66,23 @@ def build_parser() -> argparse.ArgumentParser:
         help="validate one exact offline production-readiness decision pack",
     )
     readiness.add_argument("--pack", type=Path, required=True)
+    draft = subparsers.add_parser(
+        "create-production-readiness-draft",
+        help="create one strict offline no-go production-readiness draft",
+    )
+    draft.add_argument("--provider-questionnaire", type=Path, required=True)
+    draft.add_argument("--license-questionnaire", type=Path, required=True)
+    draft.add_argument("--operator-decisions", type=Path, required=True)
+    draft.add_argument("--broker-evidence", type=Path, required=True)
+    draft.add_argument("--output", type=Path, required=True)
+    draft.add_argument("--as-of", required=True, help="timezone-aware ISO-8601 evaluation time")
+    draft.add_argument("--force", action="store_true")
+    comparison = subparsers.add_parser(
+        "compare-production-readiness",
+        help="compare two exact offline production-readiness drafts",
+    )
+    comparison.add_argument("--previous", type=Path, required=True)
+    comparison.add_argument("--candidate", type=Path, required=True)
     ingest = subparsers.add_parser(
         "ingest-data", help="ingest point-in-time daily price foundation"
     )
@@ -167,6 +184,10 @@ def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     if args.command == "validate-production-readiness":
         return _validate_production_readiness(args)
+    if args.command == "create-production-readiness-draft":
+        return _create_production_readiness_draft(args)
+    if args.command == "compare-production-readiness":
+        return _compare_production_readiness(args)
     try:
         settings = load_settings(args.config)
     except (OSError, ValueError, ValidationError, yaml.YAMLError) as exc:
@@ -245,6 +266,41 @@ def _validate_production_readiness(args: argparse.Namespace) -> int:
         return 2
     print(report_json(report))
     return 0 if report.evaluation_passed else 3
+
+
+def _create_production_readiness_draft(args: argparse.Namespace) -> int:
+    from island_quant.readiness.intake import create_production_readiness_draft
+
+    try:
+        generated_at = datetime.fromisoformat(args.as_of)
+        draft = create_production_readiness_draft(
+            provider_questionnaire=args.provider_questionnaire,
+            license_questionnaire=args.license_questionnaire,
+            operator_decisions=args.operator_decisions,
+            broker_evidence=args.broker_evidence,
+            output=args.output,
+            force=args.force,
+            generated_at=generated_at,
+        )
+    except ValueError as exc:
+        print(json.dumps({"status": "invalid", "error": str(exc)}, sort_keys=True), file=sys.stderr)
+        return 2
+    print(json.dumps({"status": "created", "pack_id": draft.pack_id,
+                      "admission_status": draft.admission_status,
+                      "report_checksum": draft.report_checksum}, sort_keys=True))
+    return 3
+
+
+def _compare_production_readiness(args: argparse.Namespace) -> int:
+    from island_quant.readiness.intake import canonical_json, load_and_compare
+
+    try:
+        report = load_and_compare(args.previous, args.candidate)
+    except ValueError as exc:
+        print(json.dumps({"status": "invalid", "error": str(exc)}, sort_keys=True), file=sys.stderr)
+        return 2
+    print(canonical_json(report))
+    return 3
 
 
 def _add_pinned_feature_arguments(parser: argparse.ArgumentParser) -> None:

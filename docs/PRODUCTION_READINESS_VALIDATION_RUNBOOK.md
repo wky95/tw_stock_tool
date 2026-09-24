@@ -34,3 +34,7 @@ uncertainty, missing deployment decision or erased broker unknown keeps the gate
 After changing a pack, run the Phase 4 focused tests and compare canonical output and
 `report_checksum`. Preserve the exact evaluated pack with the report; never relabel synthetic
 evidence as official or contract evidence.
+
+Phase 4D drafts are intentionally not Phase 4C packs. Use the intake and comparison commands first;
+UNKNOWN draft fields and missing operational proof remain no-go. Do not manufacture values to make a
+draft satisfy this evaluator. Qualification into this schema requires a separately reviewed step.

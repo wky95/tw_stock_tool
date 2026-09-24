@@ -61,3 +61,7 @@ control-plane threats, encrypted-backup restore evidence, numeric clock drift, i
 and staged-capital/rollback owners. See the
 [security/deployment decision checklist](SECURITY_DEPLOYMENT_DECISION_CHECKLIST.md). Passing a schema
 does not establish that any backend or deployment control exists.
+
+Phase 4D records these answers through a strict operator intake without choosing any value. An
+UNKNOWN answer remains no-go; an approved answer without evidence is also no-go. Intake does not
+implement or test the named control.

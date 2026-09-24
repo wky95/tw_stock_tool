@@ -89,3 +89,7 @@ Phase 4C requires these answers in one strict evidence pack before any candidate
 declared scope. Run the exact pack through `validate-production-readiness`; never use `latest`, file
 discovery or an implicit fallback. Detailed cutover and rollback gates are in
 [Provider admission and reconciliation](PROVIDER_ADMISSION_RECONCILIATION_RUNBOOK.md).
+
+Phase 4D intake precedes any parallel run. Capture real answers with the four strict schemas and
+create a no-go draft as documented in [Production evidence intake](PRODUCTION_EVIDENCE_INTAKE_RUNBOOK.md).
+The draft is not an adapter authorization and cannot be promoted merely because its schema validates.

@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "classification": "synthetic_offline",
+  "owner": {"owner_id": "fixture-legal", "name": "Synthetic Legal Owner", "role": "offline fixture reviewer"},
+  "evidence": [{"evidence_id": "synthetic-license", "owner_id": "fixture-legal", "source_kind": "synthetic", "source_url": "https://example.invalid/island-quant/license", "document_version": "fixture-v1", "retrieved_on": "2026-09-20", "reviewed_on": "2026-09-21", "expires_on": "2027-09-21", "summary": "Synthetic rights evidence; grants no rights and is not legal advice.", "summary_sha256": "36c2c4127f8e72373e09ca3c164cf401fafcd5263b5ad6b7085ca69223bd3a7d", "document_sha256": "2222222222222222222222222222222222222222222222222222222222222222", "verified_sha256": "2222222222222222222222222222222222222222222222222222222222222222"}],
+  "decisions": {
+    "non_display_research_risk_trading": {"status": "approved", "owner_id": "fixture-legal", "evidence_ids": ["synthetic-license"], "answer": "Synthetic fixture only."},
+    "algorithmic_trading": {"status": "approved", "owner_id": "fixture-legal", "evidence_ids": ["synthetic-license"], "answer": "Synthetic fixture only."},
+    "realtime_rights": {"status": "approved", "owner_id": "fixture-legal", "evidence_ids": ["synthetic-license"], "answer": "Synthetic fixture only."},
+    "historical_rights": {"status": "approved", "owner_id": "fixture-legal", "evidence_ids": ["synthetic-license"], "answer": "Synthetic fixture only."},
+    "raw_normalized_storage": {"status": "approved", "owner_id": "fixture-legal", "evidence_ids": ["synthetic-license"], "answer": "Synthetic fixture only."},
+    "retention": {"status": "approved", "owner_id": "fixture-legal", "evidence_ids": ["synthetic-license"], "answer": "Synthetic fixture only."},
+    "encrypted_backup_restore": {"status": "approved", "owner_id": "fixture-legal", "evidence_ids": ["synthetic-license"], "answer": "Synthetic fixture only."},
+    "derived_use_survival": {"status": "approved", "owner_id": "fixture-legal", "evidence_ids": ["synthetic-license"], "answer": "Synthetic fixture only."},
+    "audit_retention": {"status": "approved", "owner_id": "fixture-legal", "evidence_ids": ["synthetic-license"], "answer": "Synthetic fixture only."},
+    "display_export_redistribution": {"status": "approved", "owner_id": "fixture-legal", "evidence_ids": ["synthetic-license"], "answer": "Synthetic fixture only."},
+    "termination_export": {"status": "approved", "owner_id": "fixture-legal", "evidence_ids": ["synthetic-license"], "answer": "Synthetic fixture only."},
+    "deletion_deadline": {"status": "approved", "owner_id": "fixture-legal", "evidence_ids": ["synthetic-license"], "answer": "Synthetic fixture only."},
+    "backup_expiry": {"status": "approved", "owner_id": "fixture-legal", "evidence_ids": ["synthetic-license"], "answer": "Synthetic fixture only."},
+    "deletion_certification": {"status": "approved", "owner_id": "fixture-legal", "evidence_ids": ["synthetic-license"], "answer": "Synthetic fixture only."},
+    "regions_subprocessors": {"status": "approved", "owner_id": "fixture-legal", "evidence_ids": ["synthetic-license"], "answer": "Synthetic fixture only."},
+    "target_hosts_processes": {"status": "approved", "owner_id": "fixture-legal", "evidence_ids": ["synthetic-license"], "answer": "Synthetic fixture only."}
+  }
+}

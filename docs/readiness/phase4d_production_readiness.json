@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "milestone": "phase4d_production_evidence_intake",
+  "evaluated_as_of": "2026-09-24T12:00:00+08:00",
+  "production_candidate_draft_created": false,
+  "real_provider_answers_received": false,
+  "real_legal_answers_received": false,
+  "real_operator_decisions_received": false,
+  "qualified_reconciliation_received": false,
+  "production_admission": "no_go",
+  "live_trading_ready": false,
+  "blockers": [
+    {"code": "broker_semantics_unresolved", "owner": "broker_integration_owner", "required_evidence": "Official written guarantees for all eight preserved Shioaji semantic blockers.", "no_go_gate": "broker_blocker_preservation", "next_safe_step": "Request official clarification without credentials, login, simulation, or orders."},
+    {"code": "legal_answers_missing", "owner": "provider_legal_owner", "required_evidence": "Written contract answers covering use, storage, retention, backup, derived use, audit, export, termination and deletion.", "no_go_gate": "provider_and_license", "next_safe_step": "Complete the strict legal intake outside the repository; store only non-secret evidence metadata."},
+    {"code": "operator_decisions_missing", "owner": "operator_and_security_owner", "required_evidence": "Owned security, deployment, recovery, time, approval and staged-risk decisions with drill evidence.", "no_go_gate": "security_deployment", "next_safe_step": "Complete the operator questionnaire without implementing a backend, deployment, control plane, or live toggle."},
+    {"code": "provider_answers_missing", "owner": "provider_data_owner", "required_evidence": "Exact provider/product/version/entitlement identity, numeric SLA/history, PIT semantics, stream recovery and target-host support.", "no_go_gate": "provider_and_license", "next_safe_step": "Obtain authoritative provider answers; do not infer them from marketing."},
+    {"code": "reconciliation_not_performed", "owner": "data_operations_owner", "required_evidence": "100% critical PIT coverage, zero unexplained disagreement, zero stream faults, zero silent fallback, pinned watermark and licensed rollback.", "no_go_gate": "parallel_reconciliation", "next_safe_step": "Wait for an approved licensed candidate before a separately authorized parallel run."}
+  ],
+  "report_checksum": "e9558a9676d35212257aca5851a63a5f8ab09240dfe2e593ab0b1238f9fc2cc5"
+}

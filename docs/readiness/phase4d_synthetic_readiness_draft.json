@@ -1,0 +1,711 @@
+{
+  "admission_status": "no_go",
+  "blockers": [
+    {
+      "code": "broker_blocked:cancel_replace_fill_race",
+      "next_safe_step": "Request official written clarification without placing orders.",
+      "owner": "broker-integration-owner",
+      "required_evidence": "Official exhaustive terminal-state and race table."
+    },
+    {
+      "code": "broker_blocked:error_status_mapping",
+      "next_safe_step": "Request official written clarification without simulation.",
+      "owner": "broker-integration-owner",
+      "required_evidence": "Official versioned retryability and terminality taxonomy."
+    },
+    {
+      "code": "broker_blocked:event_retention_query_horizon",
+      "next_safe_step": "Request official written clarification without logging in.",
+      "owner": "broker-integration-owner",
+      "required_evidence": "Official retention and rollover guarantee."
+    },
+    {
+      "code": "broker_blocked:lost_response_authoritative_negative_lookup",
+      "next_safe_step": "Request official written clarification without simulation.",
+      "owner": "broker-integration-owner",
+      "required_evidence": "Official negative-lookup and safe-resubmit guarantee."
+    },
+    {
+      "code": "broker_blocked:reconnect_order_deal_baseline",
+      "next_safe_step": "Request official written clarification without credentials.",
+      "owner": "broker-integration-owner",
+      "required_evidence": "Official reconnect completeness guarantee."
+    },
+    {
+      "code": "broker_blocked:session_token_expiry",
+      "next_safe_step": "Request official written clarification without credentials.",
+      "owner": "broker-integration-owner",
+      "required_evidence": "Official session lifecycle and maintenance SLA."
+    },
+    {
+      "code": "broker_blocked:stable_identity_uniqueness_scope",
+      "next_safe_step": "Request official written clarification without logging in.",
+      "owner": "broker-integration-owner",
+      "required_evidence": "Official versioned identity and idempotency guarantee."
+    },
+    {
+      "code": "broker_blocked:version_compatibility_deprecation",
+      "next_safe_step": "Request official written clarification without installing the SDK.",
+      "owner": "broker-integration-owner",
+      "required_evidence": "Official compatibility and deprecation policy."
+    },
+    {
+      "code": "entitlement_expiry_unknown",
+      "next_safe_step": "perform pinned reconciliation only after licensed provider approval",
+      "owner": "fixture-provider",
+      "required_evidence": "an explicit current entitlement expiry"
+    },
+    {
+      "code": "phase4c_qualified_pack_not_created",
+      "next_safe_step": "keep this draft no-go until every critical answer and operational proof exists",
+      "owner": "fixture-operator",
+      "required_evidence": "qualified Phase 4C pack with real provider, legal, operator and reconciliation evidence"
+    },
+    {
+      "code": "reconciliation_unknown:last_common_watermark",
+      "next_safe_step": "perform pinned reconciliation only after licensed provider approval",
+      "owner": "fixture-provider",
+      "required_evidence": "a pinned last-common watermark"
+    },
+    {
+      "code": "reconciliation_unknown:rollback_license",
+      "next_safe_step": "perform pinned reconciliation only after licensed provider approval",
+      "owner": "fixture-provider",
+      "required_evidence": "licensed, entitled, fresh rollback source"
+    },
+    {
+      "code": "reconciliation_unknown:silent_fallbacks",
+      "next_safe_step": "perform pinned reconciliation only after licensed provider approval",
+      "owner": "fixture-provider",
+      "required_evidence": "zero silent fallbacks"
+    },
+    {
+      "code": "reconciliation_unknown:stream_faults",
+      "next_safe_step": "perform pinned reconciliation only after licensed provider approval",
+      "owner": "fixture-provider",
+      "required_evidence": "zero unresolved stream faults"
+    },
+    {
+      "code": "reconciliation_unknown:unexplained_disagreements",
+      "next_safe_step": "perform pinned reconciliation only after licensed provider approval",
+      "owner": "fixture-provider",
+      "required_evidence": "zero unexplained critical provider disagreements"
+    }
+  ],
+  "broker": {
+    "blockers": [
+      {
+        "blocker_id": "stable_identity_uniqueness_scope",
+        "conclusion": "Preserve all documented identities without extending their stated scope.",
+        "evidence_ids": [
+          "official-shioaji-review"
+        ],
+        "evidence_summary": "Documented IDs do not define cross-account/day/reconnect uniqueness.",
+        "next_safe_step": "Request official written clarification without logging in.",
+        "owner_id": "broker-integration-owner",
+        "query_date": "2026-09-24",
+        "remaining_unknown": "Identity uniqueness scope and caller-controlled durable idempotency remain unknown.",
+        "required_evidence": "Official versioned identity and idempotency guarantee.",
+        "sdk_document_version": "1.7.6",
+        "status": "blocked"
+      },
+      {
+        "blocker_id": "lost_response_authoritative_negative_lookup",
+        "conclusion": "Ambiguous outcomes remain kill-new-risk.",
+        "evidence_ids": [
+          "official-shioaji-review"
+        ],
+        "evidence_summary": "update_status supports reconciliation but absence is not authoritative.",
+        "next_safe_step": "Request official written clarification without simulation.",
+        "owner_id": "broker-integration-owner",
+        "query_date": "2026-09-24",
+        "remaining_unknown": "Authoritative negative lookup and safe resubmit remain unknown.",
+        "required_evidence": "Official negative-lookup and safe-resubmit guarantee.",
+        "sdk_document_version": "1.7.6",
+        "status": "blocked"
+      },
+      {
+        "blocker_id": "reconnect_order_deal_baseline",
+        "conclusion": "Reconnect requires full reconciliation.",
+        "evidence_ids": [
+          "official-shioaji-review"
+        ],
+        "evidence_summary": "Same-day update_status and cache health are documented.",
+        "next_safe_step": "Request official written clarification without credentials.",
+        "owner_id": "broker-integration-owner",
+        "query_date": "2026-09-24",
+        "remaining_unknown": "End-to-end order/deal completeness across disconnect remains unknown.",
+        "required_evidence": "Official reconnect completeness guarantee.",
+        "sdk_document_version": "1.7.6",
+        "status": "partial"
+      },
+      {
+        "blocker_id": "cancel_replace_fill_race",
+        "conclusion": "Fills remain authoritative and require reconciliation.",
+        "evidence_ids": [
+          "official-shioaji-review"
+        ],
+        "evidence_summary": "A deal may precede its order event.",
+        "next_safe_step": "Request official written clarification without placing orders.",
+        "owner_id": "broker-integration-owner",
+        "query_date": "2026-09-24",
+        "remaining_unknown": "Atomicity and race precedence remain unknown.",
+        "required_evidence": "Official exhaustive terminal-state and race table.",
+        "sdk_document_version": "1.7.6",
+        "status": "blocked"
+      },
+      {
+        "blocker_id": "event_retention_query_horizon",
+        "conclusion": "Do not infer historical availability.",
+        "evidence_ids": [
+          "official-shioaji-review"
+        ],
+        "evidence_summary": "Only the current day's update_status baseline is documented.",
+        "next_safe_step": "Request official written clarification without logging in.",
+        "owner_id": "broker-integration-owner",
+        "query_date": "2026-09-24",
+        "remaining_unknown": "Retention, query horizon, and midnight rollover remain unknown.",
+        "required_evidence": "Official retention and rollover guarantee.",
+        "sdk_document_version": "1.7.6",
+        "status": "blocked"
+      },
+      {
+        "blocker_id": "session_token_expiry",
+        "conclusion": "Authentication failure blocks new risk.",
+        "evidence_ids": [
+          "official-shioaji-review"
+        ],
+        "evidence_summary": "Login and logout exist but lifecycle SLA is absent.",
+        "next_safe_step": "Request official written clarification without credentials.",
+        "owner_id": "broker-integration-owner",
+        "query_date": "2026-09-24",
+        "remaining_unknown": "Expiry, renewal, and maintenance SLA remain unknown.",
+        "required_evidence": "Official session lifecycle and maintenance SLA.",
+        "sdk_document_version": "1.7.6",
+        "status": "blocked"
+      },
+      {
+        "blocker_id": "error_status_mapping",
+        "conclusion": "Unknown codes require operator decision.",
+        "evidence_ids": [
+          "official-shioaji-review"
+        ],
+        "evidence_summary": "Success code and free-form failure fields are documented.",
+        "next_safe_step": "Request official written clarification without simulation.",
+        "owner_id": "broker-integration-owner",
+        "query_date": "2026-09-24",
+        "remaining_unknown": "Comprehensive versioned error taxonomy remains unknown.",
+        "required_evidence": "Official versioned retryability and terminality taxonomy.",
+        "sdk_document_version": "1.7.6",
+        "status": "blocked"
+      },
+      {
+        "blocker_id": "version_compatibility_deprecation",
+        "conclusion": "Pin and re-audit every future version.",
+        "evidence_ids": [
+          "official-shioaji-review"
+        ],
+        "evidence_summary": "Release notes and upgrade guides are version-specific.",
+        "next_safe_step": "Request official written clarification without installing the SDK.",
+        "owner_id": "broker-integration-owner",
+        "query_date": "2026-09-24",
+        "remaining_unknown": "Supported-version and deprecation SLA remain unknown.",
+        "required_evidence": "Official compatibility and deprecation policy.",
+        "sdk_document_version": "1.7.6",
+        "status": "blocked"
+      }
+    ],
+    "classification": "synthetic_offline",
+    "evidence": [
+      {
+        "document_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+        "document_version": "Shioaji 1.7.6 mutable documentation review",
+        "evidence_id": "official-shioaji-review",
+        "expires_on": "2027-03-24",
+        "owner_id": "broker-integration-owner",
+        "retrieved_on": "2026-09-24",
+        "reviewed_on": "2026-09-24",
+        "source_kind": "official",
+        "source_url": "https://sinotrade.github.io/release/",
+        "summary": "Official-source review preserves all eight unresolved semantic blockers.",
+        "summary_sha256": "b51795c0b2748bf4fc883066434e386a96026fd26490faf44b9e3e524bc6ebb4",
+        "verified_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+      }
+    ],
+    "owner": {
+      "name": "Synthetic Broker Reviewer",
+      "owner_id": "broker-integration-owner",
+      "role": "official-source review owner"
+    },
+    "schema_version": 1
+  },
+  "evaluation_passed": false,
+  "evidence": [
+    {
+      "document_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+      "document_version": "Shioaji 1.7.6 mutable documentation review",
+      "evidence_id": "official-shioaji-review",
+      "expires_on": "2027-03-24",
+      "owner_id": "broker-integration-owner",
+      "retrieved_on": "2026-09-24",
+      "reviewed_on": "2026-09-24",
+      "source_kind": "official",
+      "source_url": "https://sinotrade.github.io/release/",
+      "summary": "Official-source review preserves all eight unresolved semantic blockers.",
+      "summary_sha256": "b51795c0b2748bf4fc883066434e386a96026fd26490faf44b9e3e524bc6ebb4",
+      "verified_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+    },
+    {
+      "document_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+      "document_version": "fixture-v1",
+      "evidence_id": "synthetic-license",
+      "expires_on": "2027-09-21",
+      "owner_id": "fixture-legal",
+      "retrieved_on": "2026-09-20",
+      "reviewed_on": "2026-09-21",
+      "source_kind": "synthetic",
+      "source_url": "https://example.invalid/island-quant/license",
+      "summary": "Synthetic rights evidence; grants no rights and is not legal advice.",
+      "summary_sha256": "36c2c4127f8e72373e09ca3c164cf401fafcd5263b5ad6b7085ca69223bd3a7d",
+      "verified_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+    },
+    {
+      "document_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+      "document_version": "fixture-v1",
+      "evidence_id": "synthetic-operator",
+      "expires_on": "2027-09-21",
+      "owner_id": "fixture-operator",
+      "retrieved_on": "2026-09-20",
+      "reviewed_on": "2026-09-21",
+      "source_kind": "synthetic",
+      "source_url": "https://example.invalid/island-quant/operator",
+      "summary": "Synthetic operator evidence; no control is implemented or deployed.",
+      "summary_sha256": "b027e0da40f72d1e5be888f23db457e35c9ecb08eace00bc78465f54c514d0ba",
+      "verified_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+    },
+    {
+      "document_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "document_version": "fixture-v1",
+      "evidence_id": "synthetic-provider",
+      "expires_on": "2027-09-21",
+      "owner_id": "fixture-provider",
+      "retrieved_on": "2026-09-20",
+      "reviewed_on": "2026-09-21",
+      "source_kind": "synthetic",
+      "source_url": "https://example.invalid/island-quant/provider",
+      "summary": "Synthetic provider evidence; not provider behavior or licensed production data.",
+      "summary_sha256": "575714546cde726db56de23968fa33bae0d41df7f668eae71baf2c2573426af2",
+      "verified_sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+    }
+  ],
+  "generated_at": "2026-09-24T12:00:00+08:00",
+  "license": {
+    "classification": "synthetic_offline",
+    "decisions": {
+      "algorithmic_trading": {
+        "answer": "Synthetic fixture only.",
+        "evidence_ids": [
+          "synthetic-license"
+        ],
+        "owner_id": "fixture-legal",
+        "status": "approved"
+      },
+      "audit_retention": {
+        "answer": "Synthetic fixture only.",
+        "evidence_ids": [
+          "synthetic-license"
+        ],
+        "owner_id": "fixture-legal",
+        "status": "approved"
+      },
+      "backup_expiry": {
+        "answer": "Synthetic fixture only.",
+        "evidence_ids": [
+          "synthetic-license"
+        ],
+        "owner_id": "fixture-legal",
+        "status": "approved"
+      },
+      "deletion_certification": {
+        "answer": "Synthetic fixture only.",
+        "evidence_ids": [
+          "synthetic-license"
+        ],
+        "owner_id": "fixture-legal",
+        "status": "approved"
+      },
+      "deletion_deadline": {
+        "answer": "Synthetic fixture only.",
+        "evidence_ids": [
+          "synthetic-license"
+        ],
+        "owner_id": "fixture-legal",
+        "status": "approved"
+      },
+      "derived_use_survival": {
+        "answer": "Synthetic fixture only.",
+        "evidence_ids": [
+          "synthetic-license"
+        ],
+        "owner_id": "fixture-legal",
+        "status": "approved"
+      },
+      "display_export_redistribution": {
+        "answer": "Synthetic fixture only.",
+        "evidence_ids": [
+          "synthetic-license"
+        ],
+        "owner_id": "fixture-legal",
+        "status": "approved"
+      },
+      "encrypted_backup_restore": {
+        "answer": "Synthetic fixture only.",
+        "evidence_ids": [
+          "synthetic-license"
+        ],
+        "owner_id": "fixture-legal",
+        "status": "approved"
+      },
+      "historical_rights": {
+        "answer": "Synthetic fixture only.",
+        "evidence_ids": [
+          "synthetic-license"
+        ],
+        "owner_id": "fixture-legal",
+        "status": "approved"
+      },
+      "non_display_research_risk_trading": {
+        "answer": "Synthetic fixture only.",
+        "evidence_ids": [
+          "synthetic-license"
+        ],
+        "owner_id": "fixture-legal",
+        "status": "approved"
+      },
+      "raw_normalized_storage": {
+        "answer": "Synthetic fixture only.",
+        "evidence_ids": [
+          "synthetic-license"
+        ],
+        "owner_id": "fixture-legal",
+        "status": "approved"
+      },
+      "realtime_rights": {
+        "answer": "Synthetic fixture only.",
+        "evidence_ids": [
+          "synthetic-license"
+        ],
+        "owner_id": "fixture-legal",
+        "status": "approved"
+      },
+      "regions_subprocessors": {
+        "answer": "Synthetic fixture only.",
+        "evidence_ids": [
+          "synthetic-license"
+        ],
+        "owner_id": "fixture-legal",
+        "status": "approved"
+      },
+      "retention": {
+        "answer": "Synthetic fixture only.",
+        "evidence_ids": [
+          "synthetic-license"
+        ],
+        "owner_id": "fixture-legal",
+        "status": "approved"
+      },
+      "target_hosts_processes": {
+        "answer": "Synthetic fixture only.",
+        "evidence_ids": [
+          "synthetic-license"
+        ],
+        "owner_id": "fixture-legal",
+        "status": "approved"
+      },
+      "termination_export": {
+        "answer": "Synthetic fixture only.",
+        "evidence_ids": [
+          "synthetic-license"
+        ],
+        "owner_id": "fixture-legal",
+        "status": "approved"
+      }
+    },
+    "evidence": [
+      {
+        "document_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "document_version": "fixture-v1",
+        "evidence_id": "synthetic-license",
+        "expires_on": "2027-09-21",
+        "owner_id": "fixture-legal",
+        "retrieved_on": "2026-09-20",
+        "reviewed_on": "2026-09-21",
+        "source_kind": "synthetic",
+        "source_url": "https://example.invalid/island-quant/license",
+        "summary": "Synthetic rights evidence; grants no rights and is not legal advice.",
+        "summary_sha256": "36c2c4127f8e72373e09ca3c164cf401fafcd5263b5ad6b7085ca69223bd3a7d",
+        "verified_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+      }
+    ],
+    "owner": {
+      "name": "Synthetic Legal Owner",
+      "owner_id": "fixture-legal",
+      "role": "offline fixture reviewer"
+    },
+    "schema_version": 1
+  },
+  "live_trading_ready": false,
+  "metrics": {
+    "critical_field_coverage": 1.0,
+    "critical_record_coverage": 1.0,
+    "entitlement_expires_on": "UNKNOWN",
+    "last_common_watermark": "UNKNOWN",
+    "rollback_licensed": "unknown",
+    "silent_fallbacks": "UNKNOWN",
+    "unexplained_disagreements": "UNKNOWN",
+    "unresolved_stream_faults": "UNKNOWN"
+  },
+  "offline": true,
+  "operator": {
+    "classification": "synthetic_offline",
+    "decisions": {
+      "approval_expiry": {
+        "answer": "Synthetic fixture only.",
+        "evidence_ids": [
+          "synthetic-operator"
+        ],
+        "owner_id": "fixture-operator",
+        "status": "approved"
+      },
+      "audit_retention": {
+        "answer": "Synthetic fixture only.",
+        "evidence_ids": [
+          "synthetic-operator"
+        ],
+        "owner_id": "fixture-operator",
+        "status": "approved"
+      },
+      "clock_source_numeric_drift_gate": {
+        "answer": "Synthetic fixture only.",
+        "evidence_ids": [
+          "synthetic-operator"
+        ],
+        "owner_id": "fixture-operator",
+        "status": "approved"
+      },
+      "control_plane_threat_model": {
+        "answer": "Synthetic fixture only.",
+        "evidence_ids": [
+          "synthetic-operator"
+        ],
+        "owner_id": "fixture-operator",
+        "status": "approved"
+      },
+      "dashboard_control_plane_separation": {
+        "answer": "Synthetic fixture only.",
+        "evidence_ids": [
+          "synthetic-operator"
+        ],
+        "owner_id": "fixture-operator",
+        "status": "approved"
+      },
+      "dedicated_process_identity": {
+        "answer": "Synthetic fixture only.",
+        "evidence_ids": [
+          "synthetic-operator"
+        ],
+        "owner_id": "fixture-operator",
+        "status": "approved"
+      },
+      "encrypted_backup_restore_drill": {
+        "answer": "Synthetic fixture only.",
+        "evidence_ids": [
+          "synthetic-operator"
+        ],
+        "owner_id": "fixture-operator",
+        "status": "approved"
+      },
+      "immutable_release_runtime_separation": {
+        "answer": "Synthetic fixture only.",
+        "evidence_ids": [
+          "synthetic-operator"
+        ],
+        "owner_id": "fixture-operator",
+        "status": "approved"
+      },
+      "kill_switch_rollback_owner": {
+        "answer": "Synthetic fixture only.",
+        "evidence_ids": [
+          "synthetic-operator"
+        ],
+        "owner_id": "fixture-operator",
+        "status": "approved"
+      },
+      "loss_rollback_cap": {
+        "answer": "Synthetic fixture only.",
+        "evidence_ids": [
+          "synthetic-operator"
+        ],
+        "owner_id": "fixture-operator",
+        "status": "approved"
+      },
+      "maximum_order_notional": {
+        "answer": "Synthetic fixture only.",
+        "evidence_ids": [
+          "synthetic-operator"
+        ],
+        "owner_id": "fixture-operator",
+        "status": "approved"
+      },
+      "maximum_staged_capital": {
+        "answer": "Synthetic fixture only.",
+        "evidence_ids": [
+          "synthetic-operator"
+        ],
+        "owner_id": "fixture-operator",
+        "status": "approved"
+      },
+      "no_public_inbound": {
+        "answer": "Synthetic fixture only.",
+        "evidence_ids": [
+          "synthetic-operator"
+        ],
+        "owner_id": "fixture-operator",
+        "status": "approved"
+      },
+      "outbound_hostname_port_allowlist": {
+        "answer": "Synthetic fixture only.",
+        "evidence_ids": [
+          "synthetic-operator"
+        ],
+        "owner_id": "fixture-operator",
+        "status": "approved"
+      },
+      "owner_only_filesystem_mode": {
+        "answer": "Synthetic fixture only.",
+        "evidence_ids": [
+          "synthetic-operator"
+        ],
+        "owner_id": "fixture-operator",
+        "status": "approved"
+      },
+      "rotation_revocation_owner": {
+        "answer": "Synthetic fixture only.",
+        "evidence_ids": [
+          "synthetic-operator"
+        ],
+        "owner_id": "fixture-operator",
+        "status": "approved"
+      },
+      "rpo_rto": {
+        "answer": "Synthetic fixture only.",
+        "evidence_ids": [
+          "synthetic-operator"
+        ],
+        "owner_id": "fixture-operator",
+        "status": "approved"
+      },
+      "secret_backend_selection": {
+        "answer": "Synthetic fixture only.",
+        "evidence_ids": [
+          "synthetic-operator"
+        ],
+        "owner_id": "fixture-operator",
+        "status": "approved"
+      },
+      "two_step_independent_approval": {
+        "answer": "Synthetic fixture only.",
+        "evidence_ids": [
+          "synthetic-operator"
+        ],
+        "owner_id": "fixture-operator",
+        "status": "approved"
+      }
+    },
+    "evidence": [
+      {
+        "document_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "document_version": "fixture-v1",
+        "evidence_id": "synthetic-operator",
+        "expires_on": "2027-09-21",
+        "owner_id": "fixture-operator",
+        "retrieved_on": "2026-09-20",
+        "reviewed_on": "2026-09-21",
+        "source_kind": "synthetic",
+        "source_url": "https://example.invalid/island-quant/operator",
+        "summary": "Synthetic operator evidence; no control is implemented or deployed.",
+        "summary_sha256": "b027e0da40f72d1e5be888f23db457e35c9ecb08eace00bc78465f54c514d0ba",
+        "verified_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+      }
+    ],
+    "owner": {
+      "name": "Synthetic Operator",
+      "owner_id": "fixture-operator",
+      "role": "offline fixture owner"
+    },
+    "schema_version": 1
+  },
+  "pack_id": "phase4d-synthetic_offline-90a33a14d006ccdf",
+  "production_admission": "no_go",
+  "provider": {
+    "benchmark_constituents_shares_float_market_cap": "Synthetic complete fixture answer.",
+    "classification": "synthetic_offline",
+    "configuration_version": "fixture-config-v1",
+    "corporate_action_corrections": "Synthetic complete fixture answer.",
+    "correction_deletion_notices": "Synthetic complete fixture answer.",
+    "entitlement_identity": "synthetic-no-rights",
+    "evidence": [
+      {
+        "document_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "document_version": "fixture-v1",
+        "evidence_id": "synthetic-provider",
+        "expires_on": "2027-09-21",
+        "owner_id": "fixture-provider",
+        "retrieved_on": "2026-09-20",
+        "reviewed_on": "2026-09-21",
+        "source_kind": "synthetic",
+        "source_url": "https://example.invalid/island-quant/provider",
+        "summary": "Synthetic provider evidence; not provider behavior or licensed production data.",
+        "summary_sha256": "575714546cde726db56de23968fa33bae0d41df7f668eae71baf2c2573426af2",
+        "verified_sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+      }
+    ],
+    "evidence_ids": [
+      "synthetic-provider"
+    ],
+    "field_coverage": 1.0,
+    "history_depth_days": 2459,
+    "history_start": "2020-01-01",
+    "incident_recovery_sla": "Synthetic complete fixture answer.",
+    "listing_delisting_identifier_changes": "Synthetic complete fixture answer.",
+    "numeric_latency_sla_milliseconds": 1000,
+    "owner": {
+      "name": "Synthetic Provider Owner",
+      "owner_id": "fixture-provider",
+      "role": "offline fixture owner"
+    },
+    "pit_announcement_revision_semantics": "Synthetic complete fixture answer.",
+    "price_limit_exceptions": "Synthetic complete fixture answer.",
+    "product_name": "offline-intake-fixture",
+    "product_version": "fixture-v1",
+    "provider_name": "SYNTHETIC-NOT-A-PROVIDER",
+    "provider_schema_version": "fixture-schema-v1",
+    "record_coverage": 1.0,
+    "required_fields": [
+      "stable_instrument_id",
+      "announced_at",
+      "available_at",
+      "revision_id"
+    ],
+    "schema_version": 1,
+    "stable_instrument_identity": "Synthetic complete fixture answer.",
+    "streaming_freshness_sequence_gap_recovery": "Synthetic complete fixture answer.",
+    "suspension_resumption": "Synthetic complete fixture answer.",
+    "target_host_process_support": "Synthetic complete fixture answer.",
+    "unexpected_closure": "Synthetic complete fixture answer."
+  },
+  "report_checksum": "0cef2fbdd749089614ad0a06a2cb75761d86f02164b06424dd5e52c5c6fa86e7",
+  "schema_version": 1,
+  "scope": "synthetic_offline",
+  "synthetic": true
+}

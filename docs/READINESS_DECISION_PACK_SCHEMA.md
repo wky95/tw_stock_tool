@@ -29,3 +29,8 @@ that cannot be committed, filesystem paths or credentials.
 
 The deterministic report contains gate results, sorted blockers, scope, explicit production/live
 no-go fields and a checksum over every field except the checksum itself.
+
+Phase 4D uses a separate draft schema because this admission schema intentionally requires concrete
+positive values and approved decisions. UNKNOWN must not be replaced with invented dates, SLAs,
+limits, hosts, or rights. See `PROVIDER_LEGAL_OPERATOR_ANSWER_SCHEMAS.md`; a Phase 4D draft is never
+accepted directly by this evaluator.

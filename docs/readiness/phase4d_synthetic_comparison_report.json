@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "previous_pack_id": "phase4d-synthetic_offline-90a33a14d006ccdf",
+  "candidate_pack_id": "phase4d-synthetic_offline-90a33a14d006ccdf",
+  "evidence_changes": [],
+  "newly_expired": [],
+  "expiring_within_30_days": [],
+  "decision_transitions": [],
+  "regressions": [],
+  "admission_may_improve": false,
+  "admission_status": "no_go",
+  "live_trading_ready": false,
+  "report_checksum": "18fff5d40f2537bbf55982319232fd6679b5c955df65f5154a6fd86252bf1e94"
+}

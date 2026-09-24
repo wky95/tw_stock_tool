@@ -29,3 +29,7 @@ Freeze and checksum both versions, record the last common watermark, stop writer
 entitlement and rights, switch one exact version, replay and reconcile before releasing readers.
 Rollback is allowed only to the exact prior version while it remains licensed, entitled, fresh and
 complete. Otherwise stop. Never fall back to an expired, stale, incomplete or unlicensed source.
+
+Before any run, use Phase 4D intake to preserve provider/legal/operator answers and evidence
+metadata. Use deterministic comparison after every evidence change. A valid draft remains no-go and
+does not authorize collection, adapter implementation, or cutover.

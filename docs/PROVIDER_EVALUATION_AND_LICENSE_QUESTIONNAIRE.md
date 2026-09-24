@@ -44,3 +44,7 @@ operator field. They include exact product/schema/entitlement/config versions, e
 retrieval/review/expiry, numeric latency, history start/depth, all required reference/tradability/
 benchmark/stream behaviors, target-process rights and termination deletion certification. Do not
 change an answer to affirmative without referenced official or contract evidence.
+
+Phase 4D's strict split schemas and evidence envelope are documented in
+`PROVIDER_LEGAL_OPERATOR_ANSWER_SCHEMAS.md`. The existing templates remain UNKNOWN and are not
+silently converted into a production candidate.

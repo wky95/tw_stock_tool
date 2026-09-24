@@ -99,6 +99,24 @@ island-quant validate-production-readiness \
 live-ready。即使離線 conformance 通過，報告仍固定為 `production_admission=no_go` 與
 `live_trading_ready=false`。目前沒有 provider/operator/legal 的正式答案，系統仍不得實盤。
 
+Phase 4D 新增純離線 production evidence intake 與 deterministic comparison。四份明確 absolute
+path 輸入分別承載 provider、legal、operator 與 broker 官方證據；strict schema 會拒絕 unknown
+fields、相對／symlink path、URL credentials、checksum／日期／owner／reference 錯誤，以及把
+synthetic evidence 放入 `production_candidate`。輸出只是保留所有 `UNKNOWN` 與 blocker 的
+mutable no-go draft，不能直接成為 Phase 4C admitted pack：
+
+```bash
+island-quant create-production-readiness-draft \
+  --provider-questionnaire /exact/provider.json --license-questionnaire /exact/license.json \
+  --operator-decisions /exact/operator.json --broker-evidence /exact/broker.json \
+  --output /exact/draft.json --as-of 2026-09-24T12:00:00+08:00
+island-quant compare-production-readiness \
+  --previous /exact/previous.json --candidate /exact/candidate.json
+```
+
+Fixtures 明確是 synthetic、offline、not provider behavior、not licensed production data、not
+legal advice、not live-ready。目前仍無真實書面答案，checked-in Phase 4D report 維持 no-go。
+
 Paper Operations 加入 pinned-calendar scheduler、singleton lease、bounded retry/dead-letter、
 startup reconciliation、heartbeat、safe mode、風控 limits、持久化 alerts 與 immutable daily
 report。唯讀 operations UI：
@@ -301,6 +319,10 @@ ISLAND_QUANT__TRADING__INITIAL_CASH=2500000 island-quant show-config
 - [Decision/evidence pack schema](docs/READINESS_DECISION_PACK_SCHEMA.md)
 - [Provider admission and reconciliation runbook](docs/PROVIDER_ADMISSION_RECONCILIATION_RUNBOOK.md)
 - [Security/deployment decision checklist](docs/SECURITY_DEPLOYMENT_DECISION_CHECKLIST.md)
+- [ADR 0020：Production evidence intake and qualification](docs/adr/0020-production-evidence-intake-and-qualification.md)
+- [Production evidence intake runbook](docs/PRODUCTION_EVIDENCE_INTAKE_RUNBOOK.md)
+- [Provider/legal/operator answer schemas](docs/PROVIDER_LEGAL_OPERATOR_ANSWER_SCHEMAS.md)
+- [Evidence lifecycle and expiry runbook](docs/EVIDENCE_LIFECYCLE_AND_EXPIRY_RUNBOOK.md)
 
 ## 設定安全原則
 
